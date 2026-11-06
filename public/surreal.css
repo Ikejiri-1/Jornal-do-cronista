@@ -1,0 +1,127 @@
+/* "O Jornal Impossível": um jornal de verdade (papel, tinta, colunas, fios duplos, letra gótica)
+   que flutua sobre uma cidade de jornal à noite, com letras caindo (fundos.js).
+   O surreal fica nas bordas e nos detalhes de impressão; o texto sempre em tinta escura sobre papel claro.
+   Sem shaders: só gradientes, sombras e transform. Vem depois do estilo base e o sobrescreve. */
+:root{
+  color-scheme:light;
+  --paper:#f4ecd8; --paper-2:#e6d9b8; --edge:#cdbf9c; --field:#fffaf0;
+  --ink:#17130f; --ink-soft:#4a4136; --rule:#17130f;
+  --accent:#1f3a5f; --accent-ink:#fff8ec; --stamp:#1f3a5f; /* azul-tinta: o jornal não usa vermelho */
+  --shadow:rgba(23,19,15,.3); --blend:multiply;
+  --gold:#ffb454; --moon:#f1ecff;
+}
+html{background:#05030f}
+body{background:transparent;font-size:18px;box-shadow:none!important}
+/* o papel amassado por cima do texto atrapalhava a leitura: saiu */
+body::before,body::after{display:none}
+#dream{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;transition:opacity .6s}
+body.is-reading #dream{opacity:.3}
+::selection{background:var(--gold);color:var(--ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+a{text-underline-offset:.15em}
+
+/* A folha: papel creme que paira sobre o céu, com sombra longa por baixo */
+.sheet{
+  margin-top:calc(var(--stage,clamp(6.5rem,24vh,15rem)) - 34px);margin-bottom:3rem;padding:clamp(14px,3vw,40px);
+  background:linear-gradient(#f6eedb,#efe5cb 55%,#e8dbbb);color:var(--ink);text-shadow:none;
+  box-shadow:0 0 0 1px rgba(23,19,15,.55),0 2px 0 #17130f,0 60px 70px -35px rgba(0,0,0,.9),0 0 110px -20px rgba(255,196,119,.35);
+}
+.sheet::after{display:none!important}
+/* o estilo base zera estes dois com !important; aqui o papel e a sombra voltam */
+.sheet{background-color:#f1e8d2;background-image:linear-gradient(#f6eedb,#efe5cb 55%,#e8dbbb)!important;
+  box-shadow:0 0 0 1px rgba(23,19,15,.55),0 2px 0 #17130f,0 60px 70px -35px rgba(0,0,0,.9),0 0 110px -20px rgba(255,196,119,.35)!important}
+
+/* Cabeçalho de jornal, com defeitos de impressão surreais: tinta fora de registro e a manchete que escorre */
+.nameplate{text-shadow:3px 3px 0 rgba(224,165,38,.7)}
+.plate{position:relative;margin-bottom:1.4rem}
+.plate::after{
+  content:"";position:absolute;left:0;right:0;top:100%;height:48px;pointer-events:none;
+  background:
+    radial-gradient(ellipse 5px 26px at 9% 0,#17130f 55%,transparent 60%),
+    radial-gradient(ellipse 4px 40px at 27% 0,#17130f 55%,transparent 60%),
+    radial-gradient(ellipse 6px 18px at 48% 0,#17130f 55%,transparent 60%),
+    radial-gradient(ellipse 4px 34px at 71% 0,#17130f 55%,transparent 60%),
+    radial-gradient(ellipse 5px 22px at 90% 0,#17130f 55%,transparent 60%);
+}
+.ear{background:var(--paper-2);box-shadow:5px 6px 0 rgba(23,19,15,.25)}
+@media (prefers-reduced-motion:no-preference){
+  .ear{animation:hover-tag 7s ease-in-out infinite alternate}
+  .ear:last-child{animation-delay:-3.5s}
+}
+@keyframes hover-tag{from{transform:translateY(0) rotate(-.6deg)}to{transform:translateY(-6px) rotate(.6deg)}}
+.dateline,.plate,.secbar{color:var(--ink)}
+
+/* Botões: carimbos de tinta, grandes e claros (alvo de toque de pelo menos 44 px) */
+.layer,.btn,.btn.primary,.btn.danger{
+  background:var(--field);color:var(--ink);border:2px solid var(--ink);border-radius:0;cursor:pointer;
+  font:700 .95rem/1.2 var(--f-text);letter-spacing:.01em;text-transform:none;text-align:center;
+  padding:.6rem 1.1rem;min-height:2.75rem;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s,background .12s;
+}
+.btn.small{padding:.4rem .8rem;min-height:2.25rem;font-size:.85rem}
+@media (hover:hover){.layer:hover,.btn:hover,.btn.primary:hover{background:#fff;transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}}
+.layer:active,.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);padding:.6rem 1.1rem}
+.btn.small:active{padding:.4rem .8rem}
+.layer[aria-selected="true"]{background:var(--ink);color:var(--paper);transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);padding:.6rem 1.1rem;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+@media (hover:hover){.btn.primary:hover{background:#2c4d7a}}
+.btn.danger{color:var(--ink)}
+.btn:disabled{opacity:.5;color:var(--ink-soft);text-shadow:none;cursor:not-allowed;box-shadow:none}
+.layer:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.layers{gap:.7rem;padding-bottom:1.1rem}
+.acct{display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.7rem;font:.8rem var(--f-type);letter-spacing:.06em;text-transform:uppercase}
+.acct .btn{text-decoration:none;display:inline-flex;align-items:center}
+a.btn{color:var(--ink)}
+#note{background:var(--paper-2);border:2px solid var(--ink);font-size:1rem}
+#note.err{border-style:dashed;border-color:var(--ink);color:var(--ink);font-weight:700}
+
+/* cartões claros que o estilo base pintava de branco puro: papel mais claro, com tinta */
+.sub-card,.sub-step,.sub-id,.pf-card,.pf-hl-circle,.pf-avatar{background:var(--field)}
+.sub-id{box-shadow:7px 7px 0 var(--ink)}
+.sheet svg.art,.sheet .art-fig img{mix-blend-mode:multiply} /* a ilustração "imprime" no papel */
+input,select,textarea,.l-q{background:var(--field);color:var(--ink);border-color:var(--ink)}
+dialog{background:var(--paper);color:var(--ink);border:3px double var(--ink);box-shadow:8px 8px 0 rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(5,3,15,.75)}
+
+/* ================= MODO LEITURA =================
+   Ao abrir um conto some tudo que não é o conto: cabeçalho, abas, listas, a tela principal.
+   Uma coluna de papel, letra grande, tinta escura, fundo parado e escurecido. */
+body.is-reading .dateline,body.is-reading .plate,body.is-reading .secbar,body.is-reading .layers,body.is-reading .acct,body.is-reading .folio,
+body.is-reading .rail,body.is-reading .capa-head,body.is-reading #pageTabs,body.is-reading #leiturasHead,body.is-reading .sheet-foot,
+body.is-reading #authorTools,body.is-reading #pendingBox,body.is-reading #composer{display:none!important}
+body.is-reading .sheet{max-width:46rem;margin-top:1.5rem;padding:clamp(1.2rem,5vw,3.2rem)}
+body.is-reading .article{max-width:none;margin:0;padding:0;border:0;box-shadow:none;background:none}
+.article .h-art{font-size:clamp(2.1rem,6.5vw,3.6rem);line-height:1.06;margin:.4rem 0 .6rem}
+.article .art-body,.article .poem{font-size:calc(1.22rem*var(--fs));line-height:1.9;max-width:38rem;margin:0 auto}
+.article .art-body p{margin:0 0 1.25em;text-align:left;hyphens:auto;text-wrap:pretty}
+.article .art-body p::first-line{font-variant:normal;text-transform:none;letter-spacing:normal}
+.article .art-body>p:first-child::first-letter{float:left;font:400 4em/.82 var(--f-display);padding:.06em .1em 0 0;color:var(--accent)}
+.article .poem{white-space:pre-wrap;font-style:italic}
+.article .back{margin-bottom:1rem}
+.article .foot{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;border-top:3px double var(--ink);padding-top:1rem;margin-top:1.5rem}
+#prog i{background:var(--accent)}
+
+/* ================= INTRODUÇÃO: volta ao visual original (céu em cinzas, rio escuro); só ganha o tom amarelado do jornal =================
+   O fundo é opaco, então a cidade do canvas (fundos.js) não aparece aqui. */
+#intro{background:#efe5cb}
+#intro .skyg{filter:sepia(.55)}
+
+/* ================= MESA DE ESCRITA: papel creme sobre a noite; a máquina mantém o aço escuro ================= */
+#tw{background:radial-gradient(ellipse at 50% 0,#2b1a63,#05030f 75%)}
+#tw .tw-paper{background:linear-gradient(#f6eedb,#e8dbbb)}
+
+/* barra de fundos do tema: fixa no topo, com a setinha pendurada; some na introdução */
+#fundo-bar{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;gap:.6rem;align-items:center;justify-content:center;padding:.4rem;background:#17130fdd;color:#f4ecd8;font:.82rem 'Special Elite',monospace;transition:transform .25s}
+.fundo-oculto #fundo-bar{transform:translateY(-100%)}
+#fundo-bar button{min-height:2.2rem;min-width:2.2rem;padding:.2rem .7rem;border:2px solid #f4ecd8;background:transparent;color:#f4ecd8;font:700 .9rem 'Old Standard TT',serif;cursor:pointer}
+#fundo-bar button[aria-pressed="true"]{background:#f4ecd8;color:#17130f}
+#fundo-bar #fundo-opts{display:flex;gap:.3rem}
+#fundo-bar #fundo-toggle{position:absolute;top:100%;right:1rem;min-height:0;padding:.1rem .9rem;border-top:0;background:#17130fdd;color:#f4ecd8;font-size:1rem;line-height:1.2}
+#fundo-cap{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--stage,300px) - 70px);z-index:2;max-width:92vw;padding:.3rem 1.2rem;background:#f6eedb;color:#17130f;border:2px solid #17130f;box-shadow:4px 4px 0 #17130f;text-align:center;white-space:nowrap;font:400 clamp(1.3rem,5vw,1.8rem)/1.2 'Abril Fatface',serif;pointer-events:none}
+body:has(#intro:not([hidden])) #fundo-bar,body:has(#intro:not([hidden])) #fundo-cap,body.is-reading #fundo-cap{display:none}
+body.is-reading #fundo-bar{display:none}
+
+@media (max-width:700px){
+  body{font-size:17px}
+  .acct{justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
