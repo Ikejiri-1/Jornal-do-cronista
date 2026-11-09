@@ -7,7 +7,7 @@ import { render, toTop } from './render.js';
 import { SUBSCRIPTION_PLAN_LABELS } from './assinatura.js';
 import { currentReaderPlan, formatMonthAndYear, profilePhotoOf, readerCodeOf, removeProfilePhotoAsEditor } from './foto.js';
 import { lsGet, readMin } from './extras.js';
-import { chipOf, pendingStories } from '../engine.js';
+import { pendingStories } from '../engine.js';
 import { ratingStats } from './edicao.js';
 import { mountPerfil, unmountPerfil } from './PerfilView';
 

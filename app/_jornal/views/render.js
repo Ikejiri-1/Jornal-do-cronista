@@ -5,7 +5,8 @@ import { renderLeituras } from './leituras.js';
 import { renderTools, syncOptions } from './mesa.js';
 import { renderProfile } from './perfil.js';
 import { renderHonorRoll, renderSubscription, renderWeeklySubmissionHint } from './foto.js';
-import { renderCapa, renderEnvios } from '../engine.js';
+import { renderCapa } from './capa.js';
+import { renderEnvios } from './envios.js';
 
 export let WEATHER, DATES, CAMPAIGNS, CURIOS, raf;
 export function __set_render(v){ render=v; return v; }
