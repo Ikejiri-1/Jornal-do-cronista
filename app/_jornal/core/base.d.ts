@@ -3,3 +3,4 @@
 export const state: any;
 export function fmtDate(ms: number): string;
 export function plural(n: number, a: string, b: string): string;
+export const GENRE_DESC: Record<string, string>;

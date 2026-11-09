@@ -11,6 +11,7 @@ import { WK_EPOCH, artFigure, closeLabel, dShort, deckOf, editionData, emptyPage
 import { MESL, colsHtml, edHead, editionPage } from './views/edicao.js';
 import { inEl, introFinish, introSize } from './views/introducao.js';
 import { mountCapa, unmountCapa } from './views/CapaView';
+import { mountEnvios, unmountEnvios } from './views/EnviosView';
 import { createOriginality } from './features/originality/index.js';
 import { createTypewriter } from './features/typewriter/index.js';
 import { createUx } from './features/ux/index.js';
@@ -66,28 +67,9 @@ function renderEnvios(){
   $('#enSub').textContent='Semana nº '+W+' · '+weekLabel(W)+'. Fecha em '+closeLabel()+' (domingo, 23h59). Na segunda-feira, o texto mais votado vira a manchete da Capa e os seguintes ocupam as páginas.';
   if(state.reading){
     var it=findItem(state.reading); if(!it){state.reading=null;return renderEnvios()}
-    $('#pendingBox').hidden=true; box.innerHTML=articleHtml(it); return;
+    $('#pendingBox').hidden=true; unmountEnvios(box); box.innerHTML=articleHtml(it); return;
   }
-  $('#pendingBox').hidden=false;
-  var counts=likeCounts(), h='';
-  h+='<details class="how"'+(lsGet('gazeta-how',0)===1?'':' open')+'><summary>Como funciona a semana</summary><ol><li>Escreva sua história na máquina de escrever e envie ao editor.</li><li>O texto passa pela vistoria de originalidade, e o editor pode revisar.</li><li>Até domingo, os leitores leem e votam nos textos aprovados.</li><li>Na segunda-feira, o mais votado vira a manchete da Capa e os seguintes ocupam as páginas.</li></ol></details>';
-  var mine=[]; ((state.storyDocs[state.uid]||{}).items||[]).forEach(function(x){if(weekNoOf(x.at||0)===W)mine.push(Object.assign({},x,{kind:'story',uid:state.uid,key:state.uid+':'+x.id,likes:counts[state.uid+':'+x.id]||0,wk:W}))});
-  mine.sort(function(a,b){return b.at-a.at});
-  h+='<h3 class="sec-title">Seus envios desta semana</h3>';
-  if(!state.uid||state.dbOff)h+='<p class="hint">Entre na sua conta para enviar e acompanhar seus textos.</p>';
-  else if(!mine.length)h+='<div class="empty"><p class="big">Você ainda não enviou nada</p><p>Escreva na máquina de escrever e envie ao editor. Depois, o status aparece aqui.</p></div>';
-  else h+=mine.map(function(x,i){
-    var fresh=Date.now()-x.at<3*60*1000;
-    return '<div class="sent'+(fresh?' new':'')+'">'+chipOf(x)+(fresh?'<span class="chip ok">Recém-enviado</span>':'')+'<span class="t">'+esc(x.title)+'</span><span class="hint">'+esc(x.genre)+' · '+fmtDate(x.at)+' · '+x.likes+' '+plural(x.likes,'voto','votos')+'</span>'+openBtn(x,'btn small','Ler')+storyTools(x)+'</div>';
-  }).join('');
-  var wait=[]; Object.keys(state.storyDocs).forEach(function(uid){((state.storyDocs[uid]||{}).items||[]).forEach(function(x){if(weekNoOf(x.at||0)===W&&(x.status==='analise'||!(x.check&&x.check.v))&&!state.bans[uid])wait.push({pen:x.pen,title:x.title,genre:x.genre,at:x.at,own:uid===state.uid})})});
-  wait.sort(function(a,b){return b.at-a.at});
-  h+='<h3 class="sec-title">Aguardando análise do editor ('+wait.length+')</h3>';
-  h+=wait.length?wait.map(function(x){return '<div class="sent"><span class="chip wait">Em análise</span><span class="t">'+esc(x.title)+'</span><span class="hint">'+esc(x.pen)+' · '+esc(x.genre)+' · '+fmtDate(x.at)+(x.own?' · seu envio':'')+'</span></div>'}).join(''):'<p class="hint">Nenhum texto aguardando análise agora.</p>';
-  var cand=rankedStories().filter(function(s){return s.demo||s.wk===W});
-  h+='<h3 class="sec-title">Concorrendo à manchete ('+cand.length+')</h3><p class="hint">Leia e vote até domingo. O mais votado ganha a Capa na segunda-feira.</p>';
-  h+=cand.length?'<div class="paper-cols two">'+cand.map(function(s,i){return storyPiece(s,i+1)}).join('')+'</div>':'<div class="empty"><p class="big">Nenhum candidato ainda</p><p>Os textos aprovados aparecem aqui para receber votos.</p></div>';
-  box.innerHTML=h;
+  $('#pendingBox').hidden=false; mountEnvios(box);
 }
 
 export 
