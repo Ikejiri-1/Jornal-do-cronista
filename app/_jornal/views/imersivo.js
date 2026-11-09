@@ -3,7 +3,7 @@ import { $, esc, state } from '../core/base.js';
 import { findItem, genres } from '../core/dados.js';
 import { ord } from './capa.js';
 import { lsSet } from './extras.js';
-import { __set_twSound, twAC, twCtx, twHit, twSound, twThump } from '../engine.js';
+import { twAc, twCtx, twHit, twSetSound, twSoundOn, twThump } from '../engine.js';
 
 export let npKey;
 
@@ -41,7 +41,7 @@ function folioNow(){
 }
 export 
 function pageRustle(){
-  if(!twSound||!twCtx())return; var t=twAC.currentTime+.002;
+  if(!twSoundOn()||!twCtx())return; var t=twAc().currentTime+.002;
   twHit(t,{d:.34,g:.1,f:3200,q:.6}); twHit(t+.05,{d:.22,g:.06,f:5200,q:.8}); twHit(t+.17,{d:.16,g:.05,f:2400,q:.7});
   twThump(t,110,.09,.05,'triangle');
 }
@@ -49,7 +49,7 @@ export
 function newsExtras(){
   renderSecbar(); renderIndex(); folioNow();
   var co=$('#co-n'); if(co)co.textContent=$('#dl-n').textContent;
-  var ps=$('#pg-sound'); if(ps)ps.firstElementChild.textContent='Som das páginas: '+(twSound?'ligado':'desligado');
+  var ps=$('#pg-sound'); if(ps)ps.firstElementChild.textContent='Som das páginas: '+(twSoundOn()?'ligado':'desligado');
   var key=state.layer+'|'+state.capaPage+'|'+(state.lsec||'')+'|'+(state.reading?state.reading.kind+':'+state.reading.key:'');
   if(npKey!==null&&key!==npKey&&!state.quietTurn){
     var v=document.querySelector('main:not([hidden])');
@@ -64,8 +64,8 @@ export function init(){
 npKey=null;
 
 $('#pg-sound').addEventListener('click',function(){
-  __set_twSound(!twSound); lsSet('gazeta-tw-sound',twSound?1:0);
-  var b=$('#tw-sound'); b.textContent='Som: '+(twSound?'ligado':'desligado'); b.setAttribute('aria-pressed',String(twSound));
-  if(twSound)pageRustle(); newsExtras();
+  twSetSound(!twSoundOn());
+  var b=$('#tw-sound'); b.textContent='Som: '+(twSoundOn()?'ligado':'desligado'); b.setAttribute('aria-pressed',String(twSoundOn()));
+  if(twSoundOn())pageRustle(); newsExtras();
 });
 }

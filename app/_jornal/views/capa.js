@@ -1,7 +1,7 @@
 /* gerado a partir de engine.js (Etapa 2, passo 0). Corpo igual ao original; só mudou onde cada coisa mora. */
 import { $, esc, state } from '../core/base.js';
 import { bylineOf, excerptOf, likeBtn, openBtn } from './html.js';
-import { twOpen } from '../engine.js';
+import { isTwOpen } from '../engine.js';
 
 export 
 
@@ -23,5 +23,5 @@ function renderComposer(){
   var why='';
   if(state.canWrite===false)why='Seu acesso a esta página é só de leitura. Peça ao dono acesso de colaborador para publicar.';
   lock.hidden=!why&&state.uid; lock.textContent=why||'Você pode escrever agora. Ao enviar, pedimos o seu login e guardamos o rascunho.';
-  form.hidden=!!why&&!twOpen;
+  form.hidden=!!why&&!isTwOpen();
 }

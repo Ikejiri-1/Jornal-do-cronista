@@ -22,7 +22,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        <Script src="/fundos/scenes.js" strategy="afterInteractive" />
         <Script src="/fundos/fundos.js" strategy="afterInteractive" />
       </body>
     </html>
