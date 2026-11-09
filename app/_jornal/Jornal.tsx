@@ -12,7 +12,7 @@ export default function Jornal({ html }: { html: string }) {
       const timer = setInterval(() => { if (w.Fundos) { clearInterval(timer); resolve(); } }, 20);
       setTimeout(() => { clearInterval(timer); resolve(); }, 3000);
     });
-    ready.then(() => import('./engine.js'));
+    ready.then(() => import('./main.js'));
   }, []);
   // display: contents mantém os filhos como se fossem filhos diretos do body (o CSS do jornal depende disso).
   return <div style={{ display: 'contents' }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: html }} />;
