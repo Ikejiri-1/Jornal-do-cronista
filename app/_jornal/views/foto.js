@@ -406,7 +406,7 @@ _render=render;
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('[data-act]'); if(!t)return;
   var a=t.dataset.act;
-  if(a!=='delwork'&&a!=='delstory'&&a!=='revokesub'&&a!=='clearprofile'&&a!=='clearphoto'&&state.armed){state.armed=null; schedule()}
+  if(a!=='delwork'&&a!=='delstory'&&a!=='revokesub'&&a!=='clearprofile'&&a!=='clearphoto'&&a!=='banuser'&&state.armed){state.armed=null; schedule()}
   if(handleSubscriptionAction(a,t)||handleProfileAction(a,t))return;
   switch(a){
     case 'layer': state.layer=t.dataset.v; state.reading=null; if(t.dataset.v==='leituras')state.lsec=null; render(); toTop(); break;
