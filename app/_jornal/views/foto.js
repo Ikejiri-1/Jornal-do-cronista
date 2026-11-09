@@ -10,6 +10,7 @@ import { handleProfileAction } from './perfil.js';
 import { changeFs, lsGet, lsSet, markRead, surprise, toggleShelf, updateProg } from './extras.js';
 import { approveStory, auditAll, banUser, chessReset, dlgClose, dlgOpen, goLogin, openTypewriter, reverify, vistoria } from '../engine.js';
 import { newsExtras } from './imersivo.js';
+import { mountAssinatura } from './AssinaturaView';
 import { dShort, hashStr, weekNoOf, weekNow, weekRange } from './semana.js';
 import { addComment, avatarSvg, cmRestore, delComment, rateItem } from './edicao.js';
 
@@ -158,106 +159,14 @@ export
 function earlyAccessChipHtml(work){
   return work.earlyUntil>Date.now()?'<span class="chip">Primeira mão · '+earlyAccessDaysLeft(work.earlyUntil)+' '+plural(earlyAccessDaysLeft(work.earlyUntil),'dia','dias')+'</span>':'';
 }
-export 
-
-/* a aba Assinatura */
-function subscriptionPlanButtonHtml(planKey,currentPlan,waitingPlan){
-  if(planKey==='banca')return '<button class="btn" data-act="layer" data-v="leituras">Continuar na banca</button>';
-  if(planKey===currentPlan)return '<button class="btn" disabled>Seu plano atual</button>';
-  if(subscriptionPlanRank(currentPlan)>subscriptionPlanRank(planKey))return '';
-  if(planKey===waitingPlan)return '<button class="btn" disabled>Na lista de espera</button> <button class="btn small" data-act="leavewaitlist">Sair da lista</button>';
-  return '<button class="btn primary" data-act="joinwaitlist" data-plan="'+planKey+'">Quero ser '+SUBSCRIPTION_PLAN_LABELS[planKey]+'</button>';
-}
-export 
-function subscriptionPlanCardHtml(planKey,currentPlan,waitingPlan){
-  var details=SUBSCRIPTION_PLAN_DETAILS[planKey];
-  return '<article class="sub-card'+(planKey==='assinante'?' main':'')+'"><header>'+
-    '<p class="sub-kicker">'+SUBSCRIPTION_PLAN_LABELS[planKey]+(details.badge?' <span class="chip">'+details.badge+'</span>':'')+(planKey===currentPlan?' <span class="chip ok">Seu plano</span>':'')+'</p>'+
-    '<p class="price">'+details.price+(details.priceUnit?' <small>'+details.priceUnit+'</small>':'')+'</p><p class="sub-note">'+details.priceNote+'</p></header>'+
-    '<ul>'+details.benefits.map(function(benefit){return '<li>— '+benefit+'</li>'}).join('')+'</ul>'+
-    '<div class="foot">'+subscriptionPlanButtonHtml(planKey,currentPlan,waitingPlan)+'</div></article>';
-}
-export 
-function subscriberCardHtml(plan){
-  var subscription=state.subscriptionDocs[state.uid];
-  if(plan==='banca'||!subscription)return '';
-  return '<section class="sub-block"><div class="sub-id"><div class="sub-id-head"><span class="mast">O Contista</span><span class="sub-kicker">Cartão de assinante</span></div>'+
-    '<p class="sub-id-plan">Plano '+SUBSCRIPTION_PLAN_LABELS[plan]+'</p>'+
-    '<p class="sub-id-meta"><span>Assinante nº '+formatSubscriberNumber(subscription.number)+'</span><span>Desde '+esc(formatMonthAndYear(subscription.since))+'</span></p>'+
-    '<div class="sub-barcode" aria-hidden="true"></div></div></section>';
-}
-export 
-function earlyAccessStepsHtml(){
-  function stepHtml(label,title,text,isDark){return '<div class="sub-step'+(isDark?' dark':'')+'"><p class="sub-kicker">'+label+'</p><p class="sub-step-title">'+title+'</p><p>'+text+'</p></div>'}
-  function linkHtml(label){return '<div class="sub-link" aria-hidden="true"><i></i><span>'+label+'</span></div>'}
-  return '<section class="sub-block"><h3>Como a liberação funciona</h3><p>A assinatura compra tempo, não acesso permanente. Todo conto segue o mesmo caminho.</p><div class="sub-steps">'+
-    stepHtml('Dia 0','Conto novo, só para assinantes','Quem assina lê, comenta e avalia primeiro.',true)+linkHtml(EARLY_ACCESS_DAYS+' dias')+
-    stepHtml('Dia '+EARLY_ACCESS_DAYS,'Abre de graça para todos','Qualquer leitor lê, curte, avalia e comenta.')+linkHtml('depois')+
-    stepHtml('Para sempre','Fica aberto na banca','Nada é trancado de novo, nem para quem deixa de assinar.')+'</div></section>';
-}
-export 
-function subscriptionHowToHtml(currentPlan,waitingPlan){
-  if(currentPlan!=='banca')return '';
-  var payment=state.paymentSettings, code=state.uid?readerCodeOf(state.uid):'';
-  return '<section class="sub-block"><h3>Como assinar</h3><ol class="sub-howto">'+
-    '<li>Escolha o plano acima e entre na lista de espera.'+(waitingPlan?' <b>Você está na lista do plano '+SUBSCRIPTION_PLAN_LABELS[waitingPlan]+'.</b>':'')+'</li>'+
-    '<li>Pague pelo link do Raul'+(payment.payUrl?': <a href="'+esc(payment.payUrl)+'" target="_blank" rel="noopener noreferrer">abrir o pagamento</a>.':'. O link ainda não foi publicado; o Raul avisa aqui quando abrir.')+(payment.instructions?' '+esc(payment.instructions):'')+'</li>'+
-    '<li>'+(code?'Informe o seu código de leitor no pagamento: <b class="sub-code">'+code+'</b>. ':'Entre na sua conta para ver o seu código de leitor. ')+'O Raul ativa o plano e o seu cartão aparece aqui.</li></ol>'+
-    '<p class="hint">O pagamento acontece fora do site. Ao entrar na lista, você concorda com a <button class="hl" data-act="privacy"><u>política de privacidade</u></button>.</p></section>';
-}
-export 
-function monthlyLetterHtml(plan){
-  if(plan==='banca'&&!state.canEdit)return '';
-  var letter=state.monthlyLetter;
-  return '<section class="sub-block"><h3>Carta do Raul</h3>'+(letter.text?'<p class="hint">'+esc(fmtDate(letter.at))+'</p>'+letter.text.split(/\n\s*\n/).map(function(paragraph){return '<p>'+esc(paragraph.replace(/\n/g,' ').trim())+'</p>'}).join(''):'<p>A primeira carta do Raul chega no próximo mês.</p>')+'</section>';
-}
-export 
-function chiefRequestFormHtml(){
-  return '<section class="sub-block"><h3>Pedidos de Editor-chefe</h3><p>Você pode pedir o nome de um personagem do próximo conto (1 pedido por mês) e sugerir o tema de um conto do mês. O Raul decide.</p>'+
-    '<div class="sub-form"><label for="req-kind">Pedido<select id="req-kind"><option value="personagem">Nome de personagem</option><option value="tema">Tema de um conto</option></select></label>'+
-    '<label for="req-text">Nome ou tema<input id="req-text" maxlength="'+CHIEF_REQUEST_MAX_LENGTH+'" autocomplete="off"></label>'+
-    '<button class="btn primary" data-act="sendrequest">Enviar pedido</button></div></section>';
-}
-export 
-function subscriptionRulesHtml(){
-  var rules=[['1 · Pagar não compra voto','A manchete da semana continua decidida só pelas curtidas dos leitores.'],['2 · Todo conto fica aberto','A assinatura compra tempo e bastidores, nunca o acesso permanente.'],['3 · Cancelou? Nada some','Seus comentários e avaliações continuam no site, e você volta para a banca.'],['4 · O preço é o preço','A taxa do pagamento já está dentro do valor, sem surpresa na fatura.']];
-  return '<section class="sub-block"><h3>As regras do jornal</h3><div class="sub-rules">'+rules.map(function(rule){return '<div><p class="sub-kicker">'+rule[0]+'</p><p>'+rule[1]+'</p></div>'}).join('')+'</div></section>';
-}
-export 
-function subscriptionEditorPanelHtml(){
-  var waitingReaders=Object.keys(state.waitlistDocs).sort(function(first,second){return state.waitlistDocs[first].at-state.waitlistDocs[second].at});
-  var activeReaders=Object.keys(state.subscriptionDocs).sort(function(first,second){return state.subscriptionDocs[first].number-state.subscriptionDocs[second].number});
-  var requestRows=[];
-  Object.keys(state.requestDocs).forEach(function(readerId){['personagem','tema'].forEach(function(kind){var request=state.requestDocs[readerId][kind]; if(request)requestRows.push({readerId:readerId,kind:kind,request:request})})});
-  function rowHtml(content){return '<div class="sub-row">'+content+'</div>'}
-  return '<section class="sub-block sub-editor"><h3>Painel do editor · Assinaturas</h3>'+
-    '<h4>Pagamento</h4><div class="sub-form"><label for="sub-pay-url">Link de pagamento (https)<input id="sub-pay-url" value="'+esc(state.paymentSettings.payUrl)+'" placeholder="https://"></label>'+
-    '<label for="sub-pay-text">Instruções para quem vai pagar<textarea id="sub-pay-text" maxlength="300" rows="2">'+esc(state.paymentSettings.instructions)+'</textarea></label>'+
-    '<button class="btn" data-act="savepayment">Salvar pagamento</button></div>'+
-    '<h4>Carta do mês</h4><div class="sub-form"><label for="sub-letter-text">Texto da carta (aparece para assinantes)<textarea id="sub-letter-text" maxlength="'+MONTHLY_LETTER_MAX_LENGTH+'" rows="4">'+esc(state.monthlyLetter.text)+'</textarea></label>'+
-    '<button class="btn" data-act="savecarta">Publicar a carta</button></div>'+
-    '<h4>Lista de espera ('+waitingReaders.length+')</h4>'+
-    '<div class="sub-form"><label for="sub-honor-name">Nome para o Expediente (só Editor-chefe, opcional)<input id="sub-honor-name" maxlength="40" autocomplete="off"></label></div>'+
-    (waitingReaders.length?waitingReaders.map(function(readerId){var entry=state.waitlistDocs[readerId]; return rowHtml('<b class="sub-code">'+readerCodeOf(readerId)+'</b><span>'+SUBSCRIPTION_PLAN_LABELS[entry.plan]+' · '+esc(fmtDate(entry.at))+'</span><button class="btn small primary" data-act="activatesub" data-reader="'+esc(readerId)+'" data-plan="'+entry.plan+'">Ativar</button>')}).join(''):'<p class="hint">Ninguém na lista agora.</p>')+
-    '<h4>Ativar por código</h4><div class="sub-form"><label for="sub-code-input">Código de leitor<input id="sub-code-input" maxlength="8" autocomplete="off"></label>'+
-    '<label for="sub-code-plan">Plano<select id="sub-code-plan"><option value="assinante">Assinante</option><option value="editor">Editor-chefe</option></select></label>'+
-    '<button class="btn" data-act="activatebycode">Ativar</button></div>'+
-    '<h4>Assinantes ativos ('+activeReaders.length+')</h4>'+
-    (activeReaders.length?activeReaders.map(function(readerId){var subscription=state.subscriptionDocs[readerId], armed=state.armed==='sub:'+readerId; return rowHtml('<b>nº '+formatSubscriberNumber(subscription.number)+'</b><b class="sub-code">'+readerCodeOf(readerId)+'</b><span>'+SUBSCRIPTION_PLAN_LABELS[subscription.plan]+(subscription.honorName?' · '+esc(subscription.honorName):'')+'</span><button class="btn small danger" data-act="revokesub" data-reader="'+esc(readerId)+'">'+(armed?'Confirmar encerramento':'Encerrar')+'</button>')}).join(''):'<p class="hint">Nenhum assinante ativo ainda.</p>')+
-    '<h4>Pedidos dos editores-chefe ('+requestRows.length+')</h4>'+
-    (requestRows.length?requestRows.map(function(row){return rowHtml('<b class="sub-code">'+readerCodeOf(row.readerId)+'</b><span>'+(row.kind==='tema'?'Tema':'Personagem')+': '+esc(row.request.text)+'</span><button class="btn small" data-act="delrequest" data-reader="'+esc(row.readerId)+'" data-kind="'+row.kind+'">Concluído</button>')}).join(''):'<p class="hint">Nenhum pedido no momento.</p>')+
-    '</section>';
-}
+/* a aba Assinatura agora é React: views/Assinatura.tsx */
 export 
 function renderSubscription(){
   var body=$('#subBody'), focused=document.activeElement;
   if(focused&&body.contains(focused)&&/^(INPUT|TEXTAREA|SELECT)$/.test(focused.tagName))return;
   var plan=currentReaderPlan(), waitingPlan=waitlistPlanOfCurrentReader();
   $('#subSub').textContent=plan==='banca'?'Leia o conto novo do Raul uma semana antes de todo mundo.':'Você é '+SUBSCRIPTION_PLAN_LABELS[plan]+'. Obrigado por manter o jornal.';
-  body.innerHTML='<section class="sub-block sub-hero"><p class="sub-kicker">Assine o jornal</p><h3 class="sub-headline">Leia primeiro. Depois, todo mundo lê.</h3><p>Todo conto novo do Raul sai uma semana antes para quem assina. Passados sete dias, ele abre de graça para todos, e nunca mais fecha.</p></section>'+
-    subscriberCardHtml(plan)+earlyAccessStepsHtml()+
-    '<section class="sub-block"><h3>Escolha a sua assinatura</h3><p>Três lugares na banca. O primeiro é grátis e continua grátis.</p><div class="sub-grid">'+SUBSCRIPTION_PLAN_ORDER.map(function(planKey){return subscriptionPlanCardHtml(planKey,plan,waitingPlan)}).join('')+'</div><p class="hint">Valores de lançamento. A taxa do meio de pagamento já está incluída no preço.</p></section>'+
-    subscriptionHowToHtml(plan,waitingPlan)+monthlyLetterHtml(plan)+(plan==='editor'?chiefRequestFormHtml():'')+subscriptionRulesHtml()+(state.canEdit?subscriptionEditorPanelHtml():'');
+  mountAssinatura(body);
 }
 export 
 

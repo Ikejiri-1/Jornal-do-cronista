@@ -18,3 +18,9 @@
 - tsc e next build passam. No build de produção: login como chefe e gravação de texto pela tela funcionam e persistem; console sem erro.
 - Não coberto por teste: o atraso da atualização otimista em rede lenta e a medição < 200 ms na tela.
 
+
+## Tarefa 3: telas em React
+### Assinatura (feita)
+- views/AssinaturaView.tsx (React) substitui os construtores de HTML de foto.js. Mesmos data-act; cliques continuam no ouvinte global. Todo texto do banco passa pelo escape do React; o link de pagamento só vira link se for https.
+- Comparado com a versão antiga no navegador (3 cenários: chefe com plano editor, chefe na banca, chefe com pedidos/lista): DOM idêntico (atributos em ordem canônica). Salvar pagamento e entrar na lista de espera funcionam; console sem erro.
+- Padrão para as próximas telas: componente em views/<Nome>View.tsx (não use o mesmo nome do .js: o Windows ignora maiúsculas), mount com flushSync, d.ts mínimos para os módulos .js que o TSX importa.
