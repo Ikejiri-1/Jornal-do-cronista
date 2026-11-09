@@ -27,6 +27,11 @@ async function login(context, email) {
 async function shot(page, dir, name) {
   fs.mkdirSync(dir, { recursive: true });
   await page.addStyleTag({ content: FREEZE });
+  // "Fecha em 6 dias e 3 h" muda com a hora: troca por um texto fixo (igual nos dois lados da comparação).
+  await page.evaluate(() => {
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (/Fecha em /.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/Fecha em [^(]*\(/, 'Fecha em X (');
+  });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(dir, name + '.png'), fullPage: true });
   const text = await page.evaluate(() => document.body.innerText.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim());
