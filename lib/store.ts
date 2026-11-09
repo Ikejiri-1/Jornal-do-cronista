@@ -17,8 +17,8 @@ export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_DOC_BYTES: Record<string, number> = { profiles: 1_000_000, default: 300_000 };
 const MAX_LIST = 500;
 
-type UserRow = { id: string; email: string; name: string; password_hash: string; role: User['role']; created_at: Date };
-const toUser = (row: UserRow): User => ({ id: row.id, email: row.email, name: row.name, passwordHash: row.password_hash, role: row.role, createdAt: row.created_at.getTime() });
+export type UserRow = { id: string; email: string; name: string; password_hash: string; role: User['role']; created_at: Date };
+export const toUser =(row: UserRow): User => ({ id: row.id, email: row.email, name: row.name, passwordHash: row.password_hash, role: row.role, createdAt: row.created_at.getTime() });
 
 export async function findUserById(id: string) {
   const [row] = await sql()<UserRow[]>`select id, email, name, password_hash, role, created_at from public.users where id = ${id}`;
@@ -96,10 +96,25 @@ export async function listDocs(collection: string, user: User | null) {
   return rows.filter((row) => rule.read(user, row.id)).map((row) => ({ id: row.id, data: row.data }));
 }
 
+// Abertura da tela: todas as coleções legíveis + o número da última mudança, em uma ida ao banco (antes eram ~17 requisições).
+export async function bootstrap(user: User | null) {
+  const names = Object.keys(RULES);
+  const [rows, [{ seq }]] = await Promise.all([
+    sql()<{ collection: string; id: string; data: Doc }[]>`
+      select collection, id, data from (
+        select collection, id, data, row_number() over (partition by collection order by updated_at desc) as n
+        from public.docs where collection in ${sql()(names)}) t where n <= ${MAX_LIST}`,
+    sql()<{ seq: string }[]>`select coalesce(max(seq), 0)::text as seq from public.doc_changes`,
+  ]);
+  const collections: Record<string, { id: string; data: Doc }[]> = Object.fromEntries(names.map((name) => [name, []]));
+  for (const row of rows) if (RULES[row.collection].read(user, row.id)) collections[row.collection].push({ id: row.id, data: row.data });
+  return { seq: Number(seq), collections };
+}
+
 // Leitura e gravação na mesma transação, com a linha travada: PATCH e regras de "só acrescenta" não perdem escrita simultânea.
 export async function writeDoc(collection: string, id: string, data: unknown, user: User, merge = false) {
   const rule = RULES[collection];
-  await sql().begin(async (tx: Tx) => {
+  return sql().begin(async (tx: Tx) => {
     const [row] = await tx<{ data: Doc }[]>`select data from public.docs where collection = ${collection} and id = ${id} for update`;
     const previous = row?.data;
     const next = merge ? { ...previous, ...(data as Doc) } : (data as Doc);
@@ -109,6 +124,7 @@ export async function writeDoc(collection: string, id: string, data: unknown, us
     if (Buffer.byteLength(JSON.stringify(next)) > (MAX_DOC_BYTES[collection] || MAX_DOC_BYTES.default)) throw fail(413, 'PAYLOAD_GRANDE', 'Conteúdo grande demais.');
     await tx`insert into public.docs (collection, id, data) values (${collection}, ${id}, ${tx.json(next)})
       on conflict (collection, id) do update set data = excluded.data, updated_at = now()`;
+    return next; // o front usa isto na hora, sem nova leitura (o servidor pode ter reescrito campos)
   });
 }
 

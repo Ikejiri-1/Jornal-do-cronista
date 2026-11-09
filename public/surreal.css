@@ -118,7 +118,7 @@ body.is-reading .article{max-width:none;margin:0;padding:0;border:0;box-shadow:n
 #fundo-bar #fundo-toggle{position:absolute;top:100%;right:1rem;min-height:0;padding:.1rem .9rem;border-top:0;background:#17130fdd;color:#f4ecd8;font-size:1rem;line-height:1.2}
 #fundo-cap{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--stage,300px) - 70px);z-index:2;max-width:92vw;padding:.3rem 1.2rem;background:#f6eedb;color:#17130f;border:2px solid #17130f;box-shadow:4px 4px 0 #17130f;text-align:center;white-space:nowrap;font:400 clamp(1.3rem,5vw,1.8rem)/1.2 'Abril Fatface',serif;pointer-events:none}
 body:has(#intro:not([hidden])) #fundo-bar,body:has(#intro:not([hidden])) #fundo-cap,body.is-reading #fundo-cap{display:none}
-body.is-reading #fundo-bar{display:none}
+body.is-reading #fundo-bar,body:has(#tw:not([hidden])) #fundo-bar,body:has(#tw:not([hidden])) #fundo-cap{display:none}
 
 @media (max-width:700px){
   body{font-size:17px}

@@ -125,15 +125,15 @@ export async function createSession(user: store.User) {
 export async function readSession(sid?: string) {
   if (!sid) return null;
   const key = sha256(sid), db = sql();
-  const [row] = await db<{ csrf: string; user_id: string; idle: number; age: number }[]>`
-    select csrf, user_id, extract(epoch from (now() - last_seen)) * 1000 as idle, extract(epoch from (now() - created_at)) * 1000 as age
-    from public.sessions where token_hash = ${key}`;
+  // Sessão e usuário numa consulta só: cada ida ao banco custa a latência da rede (a Vercel e o Supabase ficam em lugares diferentes).
+  const [row] = await db<(store.UserRow & { csrf: string; idle: number; age: number })[]>`
+    select u.id, u.email, u.name, u.password_hash, u.role, u.created_at, s.csrf,
+      extract(epoch from (now() - s.last_seen)) * 1000 as idle, extract(epoch from (now() - s.created_at)) * 1000 as age
+    from public.sessions s join public.users u on u.id = s.user_id where s.token_hash = ${key}`;
   if (!row) return null;
   if (row.idle > SESSION_IDLE_MS || row.age > SESSION_MAX_MS) { await db`delete from public.sessions where token_hash = ${key}`; return null; }
-  const user = await store.findUserById(row.user_id);
-  if (!user) return null;
   if (row.idle > 60_000) await db`update public.sessions set last_seen = now() where token_hash = ${key}`; // renova sem gravar a cada clique
-  return { user, csrf: row.csrf };
+  return { user: store.toUser(row), csrf: row.csrf };
 }
 
 export const destroySession = (sid?: string) => sql()`delete from public.sessions where token_hash = ${sha256(sid || '')}`;

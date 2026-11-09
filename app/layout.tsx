@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: 'O Contista: contos, poemas, crônicas e histórias em formato de jornal.',
   robots: { index: false },
 };
+
+export const viewport: Viewport = { viewportFit: 'cover' }; // o jornal usa as áreas seguras do iPhone
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=UnifrakturCook:wght@700&display=swap';
 

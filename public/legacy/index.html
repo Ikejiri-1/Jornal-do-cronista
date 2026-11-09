@@ -267,6 +267,20 @@ button{font:inherit;color:inherit}
 .kb-k.mod{background:linear-gradient(#dad4c0,#bdb7a1);font-size:.52rem;letter-spacing:.04em}
 .kb-k.down{transform:translateY(2px);box-shadow:0 1px 0 #77715f,inset 0 1px 0 #f8f4e8;background:linear-gradient(#cfc9b5,#c0baa5)}
 .kb-s{flex:0 1 0}
+/* teclado mecânico (gamer): teclas escuras com LED que muda de cor em onda */
+@keyframes kbrgb{to{filter:hue-rotate(360deg)}}
+#tw.m-mech .tw-kbd{background:linear-gradient(#17171c,#0a0a0d);border-top:3px solid #2c2c36}
+#tw.m-mech .kb-k{background:linear-gradient(#2a2a33,#15151b);color:#f0f0f8;border:1px solid #000;box-shadow:0 3px 0 #000,0 0 7px rgba(0,230,255,.7),inset 0 1px 0 #4a4a56;animation:kbrgb 6s linear infinite}
+#tw.m-mech .kb-r:nth-child(2) .kb-k{animation-delay:-1s}#tw.m-mech .kb-r:nth-child(3) .kb-k{animation-delay:-2s}
+#tw.m-mech .kb-r:nth-child(4) .kb-k{animation-delay:-3s}#tw.m-mech .kb-r:nth-child(5) .kb-k{animation-delay:-4s}
+#tw.m-mech .kb-k.mod{background:linear-gradient(#1f1f27,#101015)}
+#tw.m-mech .kb-k.down{transform:translateY(2px);box-shadow:0 1px 0 #000,0 0 12px rgba(0,230,255,.95),inset 0 1px 0 #4a4a56}
+/* teclado de membrana (tradicional): teclas baixas, cinza-claro, relevo mínimo */
+#tw.m-mem .tw-kbd{background:linear-gradient(#e4e4e7,#c8c8cd);border-top:3px solid #f5f5f7}
+#tw.m-mem .kb-k{background:linear-gradient(#f7f7f8,#dddde1);color:#34343a;border:1px solid #a8a8b0;border-radius:3px;box-shadow:0 1px 0 #8e8e96,inset 0 1px 0 #fff}
+#tw.m-mem .kb-k.mod{background:linear-gradient(#d4d4d9,#c2c2c8)}
+#tw.m-mem .kb-k.down{transform:translateY(1px);box-shadow:none;background:#cfcfd5}
+@media (prefers-reduced-motion:reduce){#tw.m-mech .kb-k{animation:none}}
 #tw .tw-top span{margin-left:auto}
 @media (max-width:520px){#tw .tw-top b{display:none}#tw .tw-top .btn.small{padding:.3rem .55rem;font-size:.7rem}}
 /* jornal imersivo: tinta, dobras, cabeçalho de página, índice, continuação, fim, virada de página */
@@ -1242,7 +1256,7 @@ dialog.dlg-fb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-i
   <div class="in-nav" id="in-nav"><button class="btn small" type="button" data-i="prev" aria-label="Parada anterior">←</button><span id="in-dots"></span><button class="btn small" type="button" data-i="next" aria-label="Próxima parada">→</button></div>
 </div>
 <div id="tw" role="dialog" aria-modal="true" aria-labelledby="tw-h" hidden>
-  <div class="tw-top"><b id="tw-h">Máquina de escrever</b><span><button class="btn small" type="button" id="tw-sound" aria-pressed="true">Som: ligado</button> <button class="btn small" type="button" id="tw-kbtoggle" aria-pressed="false" title="Trocar entre a máquina de escrever e o teclado de escritório antigo">Teclado: máquina</button> <button class="btn small" type="button" id="tw-exit">Sair</button></span></div>
+  <div class="tw-top"><b id="tw-h">Máquina de escrever</b><span><button class="btn small" type="button" id="tw-sound" aria-pressed="true">Som: ligado</button> <button class="btn small" type="button" id="tw-kbtoggle" title="Trocar o teclado: máquina de escrever, escritório, mecânico ou membrana">Teclado: máquina</button> <button class="btn small" type="button" id="tw-exit">Sair</button></span></div>
   <div class="tw-scroll" id="tw-scroll"><div class="tw-paper"><p class="tw-head"><span id="tw-where">Redação · O Contista</span><span id="tw-date"></span></p><p class="tw-msg err" id="tw-lock" role="status"></p><div id="tw-slot"></div><p class="tw-msg" id="tw-msg" role="status"></p></div></div>
   <div class="tw-machine" aria-hidden="true"><div class="tw-platen"><i></i><i></i></div><div class="tw-body"><span class="tw-plate">O CONTISTA · MOD. 1926</span><div id="tw-keys"></div></div></div>
   <div class="tw-kbd" id="tw-kbd" aria-hidden="true"></div>
@@ -2665,7 +2679,34 @@ function twKbOut(){
   if(!twKbNode){var a=twAC, f=a.createBiquadFilter(), g=a.createGain(); f.type='lowpass'; f.frequency.value=4200; f.Q.value=.5; g.gain.value=.85; f.connect(g); g.connect(m); twKbNode=f}
   return twKbNode;
 }
+/* teclado mecânico (switch azul): "tink" metálico do clique, "clack" do fundo da tecla + "thock" da caixa, e o clique da soltura */
+function twMechHit(kind,r){
+  var t=twAC.currentTime+.002, g=.9+r*.25, big=kind==='space'||kind==='enter', m=big?.7:kind==='back'?.9:1;
+  twHit(t,{d:.025,g:1.3*g,f:4300*m+r*500,q:7});               // tink do clique (ressonância alta = metal)
+  twHit(t,{d:.03,g:.9*g,f:2900*m,q:8});
+  twHit(t+.014,{d:.05,g:.9*g,f:1700*m+r*200,q:2.5});          // clack: plástico batendo no fundo
+  twHit(t+.014,{d:.012,g:.35*g,f:6000,type:'highpass',q:.7}); // estalo do keycap
+  twThump(t+.014,230*m+r*30,.08,.32*g,'triangle');            // thock da caixa
+  if(big){twHit(t+.03,{d:.06,g:.4*g,f:900,q:3}); twHit(t+.05,{d:.04,g:.25*g,f:1300,q:3})} // estabilizador
+  twHit(t+.075+r*.01,{d:.02,g:.8*g,f:3700*m,q:7});            // clique ao soltar
+  twHit(t+.085,{d:.03,g:.3*g,f:1400*m,q:2});
+}
+/* teclado de membrana: baque de borracha abafado, sem clique */
+function twMemHit(kind,r){
+  var t=twAC.currentTime+.002, g=.85+r*.3, m={space:.7,enter:.8,back:.95}[kind]||1;
+  twDest=twKbOut();
+  try{
+    twThump(t,120*m+r*25,.07,.3*g,'sine');
+    twHit(t,{d:.04,g:.16*g,f:700*m+r*100,type:'lowpass',q:.5});
+    twHit(t+.045,{d:.025,g:.04*g,f:500,type:'lowpass',q:.5});
+  }finally{twDest=null}
+}
 function twKbHit(kind,r){
+  if(twMode==='mech')return twMechHit(kind,r);
+  if(twMode==='mem')return twMemHit(kind,r);
+  twOfficeHit(kind,r);
+}
+function twOfficeHit(kind,r){
   var t=twAC.currentTime+.002, g=.85+r*.3;
   twDest=twKbOut();
   try{
@@ -2752,7 +2793,8 @@ function closeTypewriter(){
   twForm=null; twHome=null; $('#tw-lock').textContent=''; var sv2=$('#s-save'); if(sv2)sv2.disabled=false;
   if(state.goEnvios){state.goEnvios=false; state.layer='envios'; state.reading=null; render(); toTop()}
 }
-/* teclado de escritório: desenho, troca de modo e memória da escolha */
+/* teclados: desenho (um só, com 3 aparências em CSS), troca de modelo e memória da escolha */
+var TW_M=['type','office','mech','mem'], TW_L={type:'máquina',office:'escritório',mech:'mecânico',mem:'membrana'}, twMode=lsGet('gazeta-tw-mode','');
 (function(){
   var R=[
    ['1','2','3','4','5','6','7','8','9','0',{k:'⌫',n:'BACK',w:1.6}],
@@ -2770,15 +2812,17 @@ function closeTypewriter(){
   });
   $('#tw-kbd').innerHTML=h+'</div>';
   $('#tw-kbd').querySelectorAll('[data-k]').forEach(function(e){twKbKeys[e.dataset.k]=e});
-  twKb=lsGet('gazeta-tw-kb',0)===1;
+  if(TW_M.indexOf(twMode)<0)twMode=lsGet('gazeta-tw-kb',0)===1?'office':'type'; // migra a escolha antiga (0/1)
 })();
 function twApplyKb(){
+  twKb=twMode!=='type';
   twEl.classList.toggle('kb',twKb);
-  var b=$('#tw-kbtoggle'); b.textContent='Teclado: '+(twKb?'escritório':'máquina'); b.setAttribute('aria-pressed',String(twKb));
+  TW_M.forEach(function(m){twEl.classList.toggle('m-'+m,m===twMode)});
+  var b=$('#tw-kbtoggle'); b.textContent='Teclado: '+TW_L[twMode];
 }
 twApplyKb();
 $('#tw-kbtoggle').addEventListener('click',function(){
-  twKb=!twKb; lsSet('gazeta-tw-kb',twKb?1:0); twApplyKb(); twFit();
+  twMode=TW_M[(TW_M.indexOf(twMode)+1)%TW_M.length]; lsSet('gazeta-tw-mode',twMode); twApplyKb(); twFit();
   if(twSound&&twCtx()){ if(twKb)twKbHit('k',.5); else twBell() }
   var t=$(twKind==='work'?'#w-text':'#s-text'); if(t&&twOpen)t.focus({preventScroll:true});
 });

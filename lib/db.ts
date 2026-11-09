@@ -10,7 +10,8 @@ function connect() {
   // fetch_types: false evita uma consulta extra ao catálogo na primeira conexão (o app não usa colunas de lista).
   // max_pipeline 1: o pooler em modo transação trava com várias consultas enviadas em sequência na mesma conexão.
   // max 3: cada função serverless abre pouca conexão; o pooler do Supabase junta o resto.
-  const options = { ssl: 'require' as const, max: 3, max_pipeline: 1, prepare: false, fetch_types: false, idle_timeout: 20, connect_timeout: 10 }; // max_pipeline existe no driver, não nos tipos
+  // DATABASE_SSL=off só para o Postgres local de teste; em produção segue 'require'.
+  const options = { ssl: process.env.DATABASE_SSL === 'off' ? false : ('require' as const), max: 3, max_pipeline: 1, prepare: false, fetch_types: false, idle_timeout: 20, connect_timeout: 10 }; // max_pipeline existe no driver, não nos tipos
   return postgres(url, options);
 }
 
