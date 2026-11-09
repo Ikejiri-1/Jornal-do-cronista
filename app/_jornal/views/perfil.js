@@ -5,10 +5,11 @@ import { allWorks, findItem, rankedStories } from '../core/dados.js';
 import { articleHtml, excerptOf, openBtn } from './html.js';
 import { render, toTop } from './render.js';
 import { SUBSCRIPTION_PLAN_LABELS } from './assinatura.js';
-import { currentReaderPlan, formatMonthAndYear, profileAvatarHtml, profilePhotoOf, profilePhotoRowHtml, readerCodeOf, removeProfilePhotoAsEditor } from './foto.js';
+import { currentReaderPlan, formatMonthAndYear, profilePhotoOf, readerCodeOf, removeProfilePhotoAsEditor } from './foto.js';
 import { lsGet, readMin } from './extras.js';
 import { chipOf, pendingStories } from '../engine.js';
 import { ratingStats } from './edicao.js';
+import { mountPerfil, unmountPerfil } from './PerfilView';
 
 export let RAUL_PROFILE_ID, PROFILE_BIO_MAX_LENGTH, PROFILE_NAME_MAX_LENGTH, FOLLOWING_LIMIT, RAUL_DEFAULT_BIO;
 
@@ -63,91 +64,7 @@ function openProfile(profileId){
   state.profileTab='historias'; state.profileGenre=''; state.profileList=''; state.profileEditing=false;
   render(); toTop();
 }
-export 
-
-/* pedaços de HTML do perfil */
-function profileActionsHtml(profileId){
-  if(profileId===state.uid)return '<button class="btn small" data-act="editprofile">Editar perfil</button>';
-  if(!state.uid||!state.db)return '<button class="btn small" disabled title="Entre na sua conta para seguir.">Seguir</button>';
-  var following=isFollowing(profileId);
-  return '<button class="btn small'+(following?'':' primary')+'" data-act="follow" data-profile="'+esc(profileId)+'" aria-pressed="'+following+'">'+(following?'Seguindo':'Seguir')+'</button>';
-}
-export 
-function profileHeaderHtml(profileId){
-  var name=profileNameOf(profileId), stories=profileStoriesOf(profileId), publicStories=stories.filter(function(story){return !story.pending});
-  var likesReceived=publicStories.reduce(function(total,story){return total+(story.likes||0)},0);
-  var ratings=publicStories.filter(function(story){return story.kind==='story'}).map(ratingStats).filter(function(stats){return stats.n});
-  var ratingCount=ratings.reduce(function(total,stats){return total+stats.n},0), ratingAverage=ratingCount?ratings.reduce(function(total,stats){return total+stats.avg*stats.n},0)/ratingCount:0;
-  var oldest=stories.reduce(function(lowest,story){return story.at&&(!lowest||story.at<lowest)?story.at:lowest},0);
-  var bio=profileBioOf(profileId), followers=followersOf(profileId).length, following=followingOf(profileId).length;
-  var moderation=(state.canEdit&&profileId!==RAUL_PROFILE_ID&&state.profileDocs[profileId])?'<button class="btn small danger" data-act="clearprofile" data-profile="'+esc(profileId)+'">'+(state.armed==='pf:'+profileId?'Confirmar limpeza':'Limpar perfil (editor)')+'</button>':'';
-  var hasPhoto=!!profilePhotoOf(profileId);
-  var photoModeration=(state.canEdit&&hasPhoto)?'<button class="btn small danger" data-act="clearphoto" data-profile="'+esc(profileId)+'">'+(state.armed==='ph:'+profileId?'Confirmar remoção':'Remover foto (editor)')+'</button>':'';
-  return '<header class="pf-head"><div class="pf-avatar'+(hasPhoto?' has-photo':'')+'">'+profileAvatarHtml(profileId,name)+'</div><div class="pf-main">'+
-    '<div class="pf-line"><h2 class="pf-name">'+esc(name)+'</h2>'+(profileId===RAUL_PROFILE_ID?'<span class="chip ok">Autor e editor</span>':'')+'</div>'+
-    '<div class="pf-actions">'+profileActionsHtml(profileId)+moderation+photoModeration+'</div>'+
-    '<ul class="pf-stats"><li><b>'+stories.length+'</b> '+plural(stories.length,'história','histórias')+'</li>'+
-    '<li><button data-act="pflist" data-list="followers"><b>'+followers+'</b> '+plural(followers,'seguidor','seguidores')+'</button></li>'+
-    '<li><button data-act="pflist" data-list="following"><b>'+following+'</b> seguindo</button></li></ul>'+
-    (bio?'<p class="pf-bio">'+esc(bio)+'</p>':'<p class="pf-bio pf-empty">'+(profileId===state.uid?'Conte em poucas palavras quem você é. Use “Editar perfil”.':'Este perfil ainda não tem bio.')+'</p>')+
-    '<p class="pf-meta">'+(oldest?'Escreve desde '+esc(formatMonthAndYear(oldest))+' · ':'')+'♥ '+likesReceived+' '+plural(likesReceived,'curtida recebida','curtidas recebidas')+(ratingCount?' · ★ '+ratingAverage.toFixed(1).replace('.',',')+' de média':'')+'</p></div></header>';
-}
-export 
-function profileHighlightsHtml(profileId){
-  var counts={}; profileStoriesOf(profileId).forEach(function(story){counts[story.genre]=(counts[story.genre]||0)+1});
-  var genreNames=Object.keys(counts).sort(function(first,second){return counts[second]-counts[first]});
-  if(!genreNames.length)return '';
-  function circleHtml(label,genre,count){
-    var selected=state.profileGenre===genre;
-    return '<button class="pf-hl" data-act="pfgenre" data-genre="'+esc(genre)+'" aria-pressed="'+selected+'"><span class="pf-hl-circle">'+esc(label.charAt(0).toUpperCase())+'</span><span class="pf-hl-name">'+esc(label)+'</span><span class="pf-hl-count">'+count+'</span></button>';
-  }
-  return '<div class="pf-highlights" role="group" aria-label="Tipos de escrita">'+circleHtml('Todas','',profileStoriesOf(profileId).length)+genreNames.map(function(genre){return circleHtml(genre,genre,counts[genre])}).join('')+'</div>';
-}
-export 
-function profileTabsHtml(profileId){
-  var tabs=[['historias','Histórias']]; if(profileId===state.uid)tabs.push(['salvos','Salvos']); tabs.push(['sobre','Sobre']);
-  return '<div class="pf-tabs" role="tablist" aria-label="Seções do perfil">'+tabs.map(function(tab){return '<button role="tab" data-act="pftab" data-tab="'+tab[0]+'" aria-selected="'+(state.profileTab===tab[0])+'">'+tab[1]+'</button>'}).join('')+'</div>';
-}
-export 
-function profileStoryCardHtml(story){
-  var rating=story.kind==='story'?ratingStats(story):null;
-  var meta=story.kind==='work'?readMin(story)+' min de leitura':'♥ '+(story.likes||0)+(rating&&rating.n?' · ★ '+rating.avg.toFixed(1).replace('.',','):'')+' · '+fmtDate(story.at);
-  return '<article class="pf-card"><p class="kicker">'+esc(story.genre)+'</p><h3 class="h-mid">'+openBtn(story,'hl',esc(story.title))+'</h3>'+
-    '<p class="excerpt">'+excerptOf(story,130)+'</p><p class="pf-card-meta">'+(story.pending?chipOf(story):meta)+'</p></article>';
-}
-export 
-function profileGridHtml(stories,emptyHtml){
-  return stories.length?'<div class="pf-grid">'+stories.map(profileStoryCardHtml).join('')+'</div>':emptyHtml;
-}
-export 
-function profilePeopleListHtml(profileId){
-  var kind=state.profileList, ids=(kind==='followers'?followersOf(profileId):followingOf(profileId)).slice(0,100);
-  var title=kind==='followers'?'Seguidores':'Seguindo';
-  return '<section class="pf-people"><div class="pf-people-head"><h3>'+title+' ('+ids.length+')</h3><button class="btn small" data-act="pflist" data-list="">Fechar</button></div>'+
-    (ids.length?ids.map(function(readerId){
-      var name=profileNameOf(readerId), bio=profileBioOf(readerId);
-      return '<div class="pf-person"><span class="pf-person-avatar">'+profileAvatarHtml(readerId,name)+'</span><span class="pf-person-text"><button class="author-link" data-act="profile" data-profile="'+esc(readerId)+'"><b>'+esc(name)+'</b></button>'+(bio?'<small>'+esc(clip(bio,80))+'</small>':'')+'</span>'+(readerId===state.uid?'':profileActionsHtml(readerId))+'</div>';
-    }).join(''):'<p class="hint">Ninguém por aqui ainda.</p>')+'</section>';
-}
-export 
-function profileAboutHtml(profileId){
-  var latest=latestStoryOf(profileId), isOwn=profileId===state.uid, plan=currentReaderPlan();
-  return '<section class="pf-about"><h3>Sobre</h3><p>'+(profileBioOf(profileId)?esc(profileBioOf(profileId)):'Sem bio por enquanto.')+'</p>'+
-    (isOwn?'<p class="hint">Seu código de leitor: <b class="sub-code">'+readerCodeOf(state.uid)+'</b> · Plano '+SUBSCRIPTION_PLAN_LABELS[plan]+' · <button class="hl" data-act="layer" data-v="assinatura"><u>Ver a assinatura</u></button></p>':'')+
-    (latest&&latest.pen&&!isOwn&&profileId!==RAUL_PROFILE_ID?'<p class="hint">Assina as histórias como “'+esc(latest.pen)+'”.</p>':'')+'</section>';
-}
-export 
-function profileEditFormHtml(){
-  var draft=state.profileTextDraft, savedProfile=state.profileDocs[state.uid];
-  var name=draft?draft.name:(savedProfile?savedProfile.name:(profileNameOf(state.uid).indexOf('Leitor ')===0?'':profileNameOf(state.uid)));
-  var bio=draft?draft.bio:profileBioOf(state.uid);
-  var previewPhoto=state.profilePhotoDraft!==undefined?state.profilePhotoDraft:profilePhotoOf(state.uid);
-  return '<section class="sub-block pf-edit"><h3>Editar perfil</h3>'+profilePhotoRowHtml(previewPhoto,name||profileNameOf(state.uid))+
-    '<div class="sub-form"><label for="pf-name-input">Nome de autor<input id="pf-name-input" maxlength="'+PROFILE_NAME_MAX_LENGTH+'" autocomplete="off" value="'+esc(name)+'"></label>'+
-    '<label for="pf-bio-input">Bio (até '+PROFILE_BIO_MAX_LENGTH+' caracteres)<textarea id="pf-bio-input" maxlength="'+PROFILE_BIO_MAX_LENGTH+'" rows="3">'+esc(bio)+'</textarea></label>'+
-    '<p class="hint">O perfil é público: nome, bio e foto aparecem para todos. Links e e-mails não são permitidos.</p>'+
-    '<div class="row"><button class="btn primary" data-act="saveprofile">Salvar perfil</button><button class="btn" data-act="cancelprofile">Cancelar</button></div></div></section>';
-}
+/* as peças do perfil agora são React: views/PerfilView.tsx */
 export 
 function renderProfile(){
   var body=$('#pfBody'), focused=document.activeElement;
@@ -157,18 +74,10 @@ function renderProfile(){
   $('#pfBack').hidden=!state.profileViewId||state.profileViewId===state.uid;
   if(state.reading){
     var openedItem=findItem(state.reading);
-    if(openedItem){body.innerHTML=articleHtml(openedItem); return}
+    if(openedItem){unmountPerfil(body); body.innerHTML=articleHtml(openedItem); return}
     state.reading=null;
   }
-  if(!profileHasData(profileId)){body.innerHTML='<div class="empty"><p class="big">Perfil não encontrado</p><p>Este autor ainda não publicou nada.</p></div>'; return}
-  var stories=profileStoriesOf(profileId), filtered=state.profileGenre?stories.filter(function(story){return story.genre===state.profileGenre}):stories, content;
-  if(state.profileList)content=profilePeopleListHtml(profileId);
-  else if(state.profileTab==='sobre')content=profileAboutHtml(profileId);
-  else if(state.profileTab==='salvos'&&profileId===state.uid){
-    var savedItems=lsGet('gazeta-shelf',[]).map(function(key){return findItem({kind:key.indexOf(':')>0?'story':'work',key:key})}).filter(Boolean);
-    content=profileGridHtml(savedItems,'<div class="empty"><p class="big">Nada guardado</p><p>Use “Guardar” em qualquer leitura para ela aparecer aqui.</p></div>');
-  }else content=profileGridHtml(filtered,'<div class="empty"><p class="big">Nenhuma história ainda</p><p>'+(profileId===state.uid?'Envie a sua primeira história para concorrer à capa da semana.':'Volte em breve.')+'</p>'+(profileId===state.uid?'<div class="row"><button class="btn primary" data-act="newstory">Escrever e enviar ao editor</button></div>':'')+'</div>');
-  body.innerHTML=(state.profileEditing&&profileId===state.uid?profileEditFormHtml():'')+profileHeaderHtml(profileId)+(state.profileList?'':profileHighlightsHtml(profileId)+profileTabsHtml(profileId))+content;
+  mountPerfil(body,profileId);
 }
 export 
 

@@ -22,19 +22,6 @@ function cleanProfilePhoto(value){return typeof value==='string'&&value.length<=
 export 
 function profilePhotoOf(profileId){var profile=state.profileDocs[profileId]; return profile?profile.photo:''}
 export 
-function profileAvatarHtml(profileId,name,photoOverride){
-  var photo=photoOverride!==undefined?photoOverride:profilePhotoOf(profileId);
-  return photo?'<img class="avatar-photo" src="'+photo+'" alt="Foto de perfil de '+esc(name)+'" width="'+PROFILE_PHOTO_SIZE+'" height="'+PROFILE_PHOTO_SIZE+'">':avatarSvg(name);
-}
-export 
-function profilePhotoRowHtml(previewPhoto,name){
-  return '<div class="pf-photo-row"><span class="pf-avatar pf-avatar-preview'+(previewPhoto?' has-photo':'')+'">'+profileAvatarHtml(state.uid,name,previewPhoto)+'</span>'+
-    '<div class="pf-photo-actions"><label class="btn small" for="pf-photo-input">'+(previewPhoto?'Trocar foto':'Escolher foto')+'</label>'+
-    '<input id="pf-photo-input" class="pf-file" type="file" accept="image/*">'+
-    (previewPhoto?'<button class="btn small" data-act="removephoto">Remover foto</button>':'')+
-    '<p class="hint">A foto fica pública no seu perfil. Use uma foto sua ou um desenho. Ela é cortada em quadrado e reduzida no seu aparelho, e os dados da câmera, como a localização, são apagados. Não envie fotos de outras pessoas, de crianças, nudez ou conteúdo ofensivo.</p></div></div>';
-}
-export 
 function loadImageFromFile(file){
   return new Promise(function(resolve,reject){
     var objectUrl=URL.createObjectURL(file), image=new Image();

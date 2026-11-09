@@ -6,3 +6,5 @@ export function formatSubscriberNumber(n: number): string;
 export function formatMonthAndYear(ts: number): string;
 export function renderSubscription(): void;
 export function safePaymentUrl(v: unknown): string;
+export const PROFILE_PHOTO_SIZE: number;
+export function profilePhotoOf(profileId: string): string;
