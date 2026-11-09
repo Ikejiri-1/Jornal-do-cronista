@@ -1,52 +1,38 @@
-// Armazenamento em memória com a mesma forma "coleção/documento" que o front já usa.
-// Sem banco por enquanto: um snapshot JSON em data/store.json mantém os dados entre reinícios.
-// shortcut: grava o arquivo inteiro a cada mudança; trocar por banco (PostgreSQL) quando houver uso real.
-import fs from 'node:fs';
-import path from 'node:path';
+// Acesso aos dados no Postgres (Supabase), com a mesma forma "coleção/documento" que o front já usa.
+// Usuários têm tabela própria (com constraints); as coleções do jornal ficam em `docs` (JSONB).
+// shortcut: documentos em JSONB em vez de uma tabela por coleção (foge da 3ª forma normal); normalizar se alguma coleção virar relatório pesado.
 import { fail } from './http';
+import { sql, Tx } from './db';
 
 export type User = { id: string; email: string; name: string; passwordHash: string; role: 'reader' | 'chefe'; createdAt: number };
 type Doc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-type Listener = { user: User | null; send: (event: { c: string; id: string }) => void };
 type Rule = {
   read: (user: User | null, id: string) => boolean;
   write: (user: User | null, id: string) => boolean;
   remove?: (user: User | null, id: string) => boolean; // padrão: a regra de escrita
   validate?: (user: User, id: string, data: Doc, previous?: Doc) => string | void;
 };
-type StoreState = { users: Map<string, User>; docs: Record<string, Record<string, Doc>>; listeners: Set<Listener>; saveTimer?: NodeJS.Timeout };
 
 export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
-const FILE = path.join(process.cwd(), 'data', 'store.json');
 const MAX_DOC_BYTES: Record<string, number> = { profiles: 1_000_000, default: 300_000 };
+const MAX_LIST = 500;
 
-const globalState = globalThis as unknown as { __store?: StoreState };
-const state: StoreState = (globalState.__store ||= (() => {
-  const initial: StoreState = { users: new Map(), docs: {}, listeners: new Set() };
-  try {
-    const saved = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    (saved.users || []).forEach((user: User) => initial.users.set(user.id, (user.role as string) === 'editor' ? { ...user, role: 'chefe' } : user)); // 'editor' era o nome antigo do papel
-    Object.assign(initial.docs, saved.docs || {});
-  } catch { /* primeira execução */ }
-  return initial;
-})());
+type UserRow = { id: string; email: string; name: string; password_hash: string; role: User['role']; created_at: Date };
+const toUser = (row: UserRow): User => ({ id: row.id, email: row.email, name: row.name, passwordHash: row.password_hash, role: row.role, createdAt: row.created_at.getTime() });
 
-export const listeners = state.listeners;
-
-export function save() {
-  clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(() => {
-    fs.mkdirSync(path.dirname(FILE), { recursive: true });
-    const temporary = FILE + '.tmp';
-    fs.writeFileSync(temporary, JSON.stringify({ users: [...state.users.values()], docs: state.docs }));
-    fs.renameSync(temporary, FILE);
-  }, 300);
+export async function findUserById(id: string) {
+  const [row] = await sql()<UserRow[]>`select id, email, name, password_hash, role, created_at from public.users where id = ${id}`;
+  return row ? toUser(row) : null;
 }
-
-export const findUserById = (id: string) => state.users.get(id) || null;
-export const findUserByEmail = (email: string) => { for (const user of state.users.values()) if (user.email === email) return user; return null; };
-export const hasChefe = () => [...state.users.values()].some((user) => user.role === 'chefe');
-export const addUser = (user: User) => { state.users.set(user.id, user); save(); };
+export async function findUserByEmail(email: string) {
+  const [row] = await sql()<UserRow[]>`select id, email, name, password_hash, role, created_at from public.users where email = ${email}`;
+  return row ? toUser(row) : null;
+}
+// Quem viola users_email_unique ou users_one_chefe recebe o erro do banco; o chamador traduz.
+export const addUser = (user: User) => sql()`
+  insert into public.users (id, email, name, password_hash, role, created_at)
+  values (${user.id}, ${user.email}, ${user.name}, ${user.passwordHash}, ${user.role}, ${new Date(user.createdAt)})`;
+export const setPasswordHash = (id: string, hash: string) => sql()`update public.users set password_hash = ${hash} where id = ${id}`;
 
 // ---- regras de acesso (autorização sempre no servidor) ----
 export const isChefe = (user: User | null) => !!user && user.role === 'chefe';
@@ -98,29 +84,43 @@ const RULES: Record<string, Rule> = {
 };
 
 export const ruleFor = (collection: string) => (Object.prototype.hasOwnProperty.call(RULES, collection) ? RULES[collection] : null);
-export const getDoc = (collection: string, id: string) => state.docs[collection]?.[id];
 
-export function listDocs(collection: string, user: User | null) {
-  const rule = RULES[collection], all = state.docs[collection] || {};
-  return Object.keys(all).filter((id) => rule.read(user, id)).map((id) => ({ id, data: all[id] }));
+export async function getDoc(collection: string, id: string): Promise<Doc | undefined> {
+  const [row] = await sql()<{ data: Doc }[]>`select data from public.docs where collection = ${collection} and id = ${id}`;
+  return row?.data;
 }
 
-function notify(collection: string, id: string) {
-  for (const listener of state.listeners) if (RULES[collection].read(listener.user, id)) listener.send({ c: collection, id });
+export async function listDocs(collection: string, user: User | null) {
+  const rule = RULES[collection];
+  const rows = await sql()<{ id: string; data: Doc }[]>`select id, data from public.docs where collection = ${collection} order by updated_at desc limit ${MAX_LIST}`;
+  return rows.filter((row) => rule.read(user, row.id)).map((row) => ({ id: row.id, data: row.data }));
 }
 
-export function writeDoc(collection: string, id: string, data: unknown, user: User, merge = false) {
-  const previous = getDoc(collection, id), rule = RULES[collection];
-  const next = merge ? { ...previous, ...(data as Doc) } : (data as Doc);
-  if (!next || typeof next !== 'object' || Array.isArray(next)) throw fail(422, 'VALIDACAO', 'Documento inválido.');
-  const problem = rule.validate && rule.validate(user, id, next, previous);
-  if (problem) throw fail(422, 'VALIDACAO', problem);
-  if (Buffer.byteLength(JSON.stringify(next)) > (MAX_DOC_BYTES[collection] || MAX_DOC_BYTES.default)) throw fail(413, 'PAYLOAD_GRANDE', 'Conteúdo grande demais.');
-  (state.docs[collection] ||= {})[id] = next;
-  save();
-  notify(collection, id);
+// Leitura e gravação na mesma transação, com a linha travada: PATCH e regras de "só acrescenta" não perdem escrita simultânea.
+export async function writeDoc(collection: string, id: string, data: unknown, user: User, merge = false) {
+  const rule = RULES[collection];
+  await sql().begin(async (tx: Tx) => {
+    const [row] = await tx<{ data: Doc }[]>`select data from public.docs where collection = ${collection} and id = ${id} for update`;
+    const previous = row?.data;
+    const next = merge ? { ...previous, ...(data as Doc) } : (data as Doc);
+    if (!next || typeof next !== 'object' || Array.isArray(next)) throw fail(422, 'VALIDACAO', 'Documento inválido.');
+    const problem = rule.validate && rule.validate(user, id, next, previous);
+    if (problem) throw fail(422, 'VALIDACAO', problem);
+    if (Buffer.byteLength(JSON.stringify(next)) > (MAX_DOC_BYTES[collection] || MAX_DOC_BYTES.default)) throw fail(413, 'PAYLOAD_GRANDE', 'Conteúdo grande demais.');
+    await tx`insert into public.docs (collection, id, data) values (${collection}, ${id}, ${tx.json(next)})
+      on conflict (collection, id) do update set data = excluded.data, updated_at = now()`;
+  });
 }
 
-export function deleteDoc(collection: string, id: string) {
-  if (state.docs[collection] && id in state.docs[collection]) { delete state.docs[collection][id]; save(); notify(collection, id); }
+export const deleteDoc = (collection: string, id: string) => sql()`delete from public.docs where collection = ${collection} and id = ${id}`;
+
+// Substitui o SSE: o navegador pergunta "o que mudou depois do número N". Só devolve o que o usuário pode ler.
+export async function changesSince(since: number | null, user: User | null) {
+  const db = sql();
+  if (Math.random() < 0.02) await db`delete from public.doc_changes where at < now() - interval '1 day'`;
+  const [{ seq }] = await db<{ seq: string }[]>`select coalesce(max(seq), 0)::text as seq from public.doc_changes`;
+  if (since === null || since > Number(seq)) return { seq: Number(seq), items: [] as { c: string; id: string }[] };
+  const rows = await db<{ collection: string; id: string }[]>`select distinct collection, id from public.doc_changes where seq > ${since} limit 500`;
+  const items = rows.filter((row) => RULES[row.collection]?.read(user, row.id)).map((row) => ({ c: row.collection, id: row.id }));
+  return { seq: Number(seq), items };
 }

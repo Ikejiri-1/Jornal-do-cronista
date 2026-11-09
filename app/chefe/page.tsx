@@ -10,7 +10,7 @@ export const metadata = { title: 'Painel do chefe · O Contista', robots: { inde
 
 // Quem não é o chefe vê 404: a página não revela que existe. A API também checa (store.ts).
 export default async function ChefePage() {
-  const session = readSession((await cookies()).get(SESSION_COOKIE)?.value);
+  const session = await readSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session || !isChefe(session.user)) notFound();
   return <ChefePanel csrf={session.csrf} />;
 }

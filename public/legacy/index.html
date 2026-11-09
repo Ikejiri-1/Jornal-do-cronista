@@ -4172,9 +4172,16 @@ function makeRemoteDB(csrfToken){
   function later(sub){clearTimeout(timers.get(sub)); timers.set(sub,setTimeout(function(){refetch(sub)},120))}
   function open(){
     if(source)return;
-    source=new EventSource('/api/db/stream');
-    source.onmessage=function(ev){var m; try{m=JSON.parse(ev.data)}catch(x){return} subs.forEach(function(sub){if(sub.c===m.c&&(sub.id===undefined||sub.id===m.id))later(sub)})};
-    source.onopen=function(){subs.forEach(later)};
+    // Sem SSE (a Vercel não mantém conexão aberta): a cada 15 s pergunta o que mudou e recarrega só isso.
+    var seq=null;
+    function tick(){
+      if(document.hidden)return;
+      api('GET','/api/db/changes'+(seq===null?'':'?since='+seq)).then(function(r){
+        seq=r.seq; r.items.forEach(function(m){subs.forEach(function(sub){if(sub.c===m.c&&(sub.id===undefined||sub.id===m.id))later(sub)})});
+      }).catch(function(){});
+    }
+    source=setInterval(tick,15000); tick();
+    document.addEventListener('visibilitychange',tick);
   }
   function listen(c,id,cb,fail){var sub={c:c,id:id,cb:cb,fail:fail}; subs.push(sub); open(); refetch(sub); return function(){subs=subs.filter(function(x){return x!==sub})}}
   function docRef(c,id){return {

@@ -17,14 +17,14 @@ export const clientIp = (req: NextRequest) => (process.env.TRUST_PROXY ? (req.he
 export const getAuth = (req: NextRequest) => readSession(req.cookies.get(SESSION_COOKIE)?.value);
 
 // Escritas: Origin do mesmo site + token CSRF da sessão (duas camadas).
-export function guardWrite(req: NextRequest, needCsrf = true) {
+export async function guardWrite(req: NextRequest, needCsrf = true) {
   const origin = req.headers.get('origin');
   if (origin) {
     let host = '';
     try { host = new URL(origin).host; } catch { /* origem inválida */ }
     if (host !== req.headers.get('host')) throw fail(403, 'CSRF', 'Origem não permitida.');
   }
-  const auth = getAuth(req);
+  const auth = await getAuth(req);
   if (needCsrf && auth && req.headers.get('x-csrf-token') !== auth.csrf) throw fail(403, 'CSRF', 'Sessão inválida. Recarregue a página.');
   return auth;
 }

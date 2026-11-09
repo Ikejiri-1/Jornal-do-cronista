@@ -8,5 +8,5 @@ export const dynamic = 'force-dynamic';
 export const GET = handle(async (req, { params }: { params: Promise<{ collection: string }> }) => {
   const { collection } = await params;
   if (!store.ruleFor(collection)) throw fail(404, 'NAO_ENCONTRADO', 'Coleção inexistente.');
-  return NextResponse.json({ data: store.listDocs(collection, getAuth(req)?.user ?? null) }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ data: await store.listDocs(collection, (await getAuth(req))?.user ?? null) }, { headers: { 'Cache-Control': 'no-store' } });
 });
