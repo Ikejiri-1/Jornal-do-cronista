@@ -1,6 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import './jornal.css';
+import Typewriter from './features/typewriter/Typewriter';
 
 // A lógica do jornal (telas, votação, máquina de escrever, xadrez) roda como módulo do Next, depois que a marcação já chegou no HTML.
 // O fundo ilustrado (scenes.js/fundos.js) vem do layout; espera ele estar pronto para o primeiro desenho sair com o tema certo.
@@ -15,5 +16,10 @@ export default function Jornal({ html }: { html: string }) {
     ready.then(() => import('./main.js'));
   }, []);
   // display: contents mantém os filhos como se fossem filhos diretos do body (o CSS do jornal depende disso).
-  return <div style={{ display: 'contents' }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <>
+      <div style={{ display: 'contents' }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: html }} />
+      <Typewriter />
+    </>
+  );
 }

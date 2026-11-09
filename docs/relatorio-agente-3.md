@@ -37,3 +37,15 @@ Fluxo com login (Postgres local, build webpack porque o worktree usa junção de
 ## Pendências para outros agentes
 - `app/layout.tsx` (Etapa 2): removi a linha do `scenes.js`.
 - O Agente 2 já tem o Passo 0 em `agente-2` (`engine.js` com `export` e `init_<seção>()`). Minhas seções precisam ser refeitas em cima disso: o conteúdo de `features/` vem do `engine.js` antigo, então vale reaplicar o corte na versão dele em vez de mesclar.
+
+## Atualização: máquina de escrever em React (pedido do Agente 1)
+- `features/typewriter/Typewriter.tsx` renderiza o #tw (mesmos ids e classes), `useTypewriterSound.ts` guarda o áudio (AudioContext só no primeiro gesto) e `controller.ts` é a ponte para o resto do jornal (`tw.open`, `tw.isOpen`, `tw.ctx`...). `sound.js` continua sendo o motor de áudio, com `sound.d.ts`.
+- O bloco #tw saiu de `body.ts`, que agora tem uma linha por linha da marcação (menos conflito no Git). `Jornal.tsx` renderiza `<Typewriter />` depois do HTML.
+- Os formulários de história/obra continuam na marcação: ao abrir, são movidos para #tw-slot (React não toca nesse div) e devolvidos ao fechar.
+- Conferido no build de produção: 4 teclados (classes kb/m-*), tecla com .down, AudioContext = 0 antes de qualquer gesto, modo e som persistem após recarregar, rascunho restaurado, Esc fecha e devolve o formulário, Mesa do redator (obra) abre e fecha, envio de conto fecha sozinha e leva a Enviados. compare.mjs: 22/24 ok; os 2 que falham são Enviados (desktop e celular) só pelo relógio "Fecha em X h".
+
+## Fluxos do chefe (build de produção, seed do Agente 1)
+Passou: Auditar, Reverificar, Bloquear autor, Desbloquear autor, Remover conto (a tela muda em ~100 ms), autor vê o aviso com o motivo. Bug achado e corrigido: Bloquear autor nunca confirmava (views/foto.js:409 zerava state.armed; já era assim no legado).
+
+## Não verificado
+Acessibilidade e iOS sem aparelho real; leitor de tela; "fundo só quando visível" (descartado).

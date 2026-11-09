@@ -13,7 +13,7 @@ import { inEl, introFinish, introSize } from './views/introducao.js';
 import { mountCapa, unmountCapa } from './views/CapaView';
 import { mountEnvios, unmountEnvios } from './views/EnviosView';
 import { createOriginality } from './features/originality/index.js';
-import { createTypewriter } from './features/typewriter/index.js';
+import { initTypewriter, tw as twBridge } from './features/typewriter/controller';
 import { createUx } from './features/ux/index.js';
 import { createIos } from './features/ios/index.js';
 
@@ -151,7 +151,8 @@ export function chessReset(){if(chessMod)chessMod.reset()}
 export function init_maquina(){
   // 'render' e 'note' são importados por ligação viva (podem ser trocados por __set_*): sempre chamados pelo nome
   orig=createOriginality({state:state,$:$,esc:esc,note:function(a,b){return note(a,b)},errText:errText,plural:plural,render:function(){return render()},allWorks:allWorks,INJ_RE:INJ_RE,openBtn:openBtn,bylineOf:bylineOf,storyTools:storyTools});
-  tw=createTypewriter({state:state,$:$,lsGet:lsGet,lsSet:lsSet,render:function(){return render()},toTop:toTop,draftRestore:function(){ux.draftRestore()}});
+  tw=twBridge;
+  initTypewriter({state:state,render:function(){return render()},toTop:toTop,draftRestore:function(){ux.draftRestore()}});
 }
 export function init_skill(){}
 export function init_motor(){}
