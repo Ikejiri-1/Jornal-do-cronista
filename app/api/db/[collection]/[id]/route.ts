@@ -38,7 +38,6 @@ export const PUT = handle(async (req, ctx: Ctx) => {
 
 export const PATCH = handle(async (req, ctx: Ctx) => {
   const { collection, id, user } = await authorizedWrite(req, ctx);
-  if ((await store.getDoc(collection, id)) === undefined) throw fail(404, 'NAO_ENCONTRADO', 'Documento inexistente.');
   return ok(await store.writeDoc(collection, id, await bodyData(req), user, true));
 });
 

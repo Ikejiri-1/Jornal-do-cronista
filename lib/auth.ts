@@ -136,5 +136,5 @@ export async function readSession(sid?: string) {
   return { user: store.toUser(row), csrf: row.csrf };
 }
 
-export const destroySession = (sid?: string) => sql()`delete from public.sessions where token_hash = ${sha256(sid || '')}`;
+export const destroySession = async (sid?: string) => { if (sid) await sql()`delete from public.sessions where token_hash = ${sha256(sid)}`; };
 export const publicUser = (user: store.User, csrf: string) => ({ id: user.id, name: user.name, canEdit: store.isChefe(user), csrfToken: csrf });

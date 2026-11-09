@@ -101,9 +101,11 @@ export async function bootstrap(user: User | null) {
   const names = Object.keys(RULES);
   const [rows, [{ seq }]] = await Promise.all([
     sql()<{ collection: string; id: string; data: Doc }[]>`
-      select collection, id, data from (
-        select collection, id, data, row_number() over (partition by collection order by updated_at desc) as n
-        from public.docs where collection in ${sql()(names)}) t where n <= ${MAX_LIST}`,
+      select d.collection, d.id, d.data from (
+        select collection, id, row_number() over (partition by collection order by updated_at desc) as n
+        from public.docs where collection in ${sql()(names)}) t
+      join public.docs d on d.collection = t.collection and d.id = t.id
+      where t.n <= ${MAX_LIST} order by t.n`, // ordena só colunas pequenas (sem o JSON): sem gravar arquivo temporário em disco
     sql()<{ seq: string }[]>`select coalesce(max(seq), 0)::text as seq from public.doc_changes`,
   ]);
   const collections: Record<string, { id: string; data: Doc }[]> = Object.fromEntries(names.map((name) => [name, []]));
@@ -114,16 +116,23 @@ export async function bootstrap(user: User | null) {
 // Leitura e gravação na mesma transação, com a linha travada: PATCH e regras de "só acrescenta" não perdem escrita simultânea.
 export async function writeDoc(collection: string, id: string, data: unknown, user: User, merge = false) {
   const rule = RULES[collection];
-  return sql().begin(async (tx: Tx) => {
-    const [row] = await tx<{ data: Doc }[]>`select data from public.docs where collection = ${collection} and id = ${id} for update`;
-    const previous = row?.data;
-    const next = merge ? { ...previous, ...(data as Doc) } : (data as Doc);
+  const checked = (next: unknown, previous?: Doc) => {
     if (!next || typeof next !== 'object' || Array.isArray(next)) throw fail(422, 'VALIDACAO', 'Documento inválido.');
-    const problem = rule.validate && rule.validate(user, id, next, previous);
+    const problem = rule.validate && rule.validate(user, id, next as Doc, previous);
     if (problem) throw fail(422, 'VALIDACAO', problem);
     if (Buffer.byteLength(JSON.stringify(next)) > (MAX_DOC_BYTES[collection] || MAX_DOC_BYTES.default)) throw fail(413, 'PAYLOAD_GRANDE', 'Conteúdo grande demais.');
-    await tx`insert into public.docs (collection, id, data) values (${collection}, ${id}, ${tx.json(next)})
-      on conflict (collection, id) do update set data = excluded.data, updated_at = now()`;
+    return next as Doc;
+  };
+  const upsert = (db: ReturnType<typeof sql> | Tx, next: Doc) => db`insert into public.docs (collection, id, data) values (${collection}, ${id}, ${sql().json(next)})
+    on conflict (collection, id) do update set data = excluded.data, updated_at = now()`;
+  // Troca simples, sem regra que olhe o documento anterior: uma ida ao banco só (antes eram 4: BEGIN, leitura, gravação, COMMIT).
+  if (!merge && !rule.validate) { const next = checked(data); await upsert(sql(), next); return next; }
+  // Mesclar ou validar contra o anterior: leitura e gravação na mesma transação, com a linha travada.
+  return sql().begin(async (tx: Tx) => {
+    const [row] = await tx<{ data: Doc }[]>`select data from public.docs where collection = ${collection} and id = ${id} for update`;
+    if (merge && !row) throw fail(404, 'NAO_ENCONTRADO', 'Documento inexistente.');
+    const next = checked(merge ? { ...row?.data, ...(data as Doc) } : data, row?.data);
+    await upsert(tx, next);
     return next; // o front usa isto na hora, sem nova leitura (o servidor pode ter reescrito campos)
   });
 }
@@ -134,9 +143,11 @@ export const deleteDoc = (collection: string, id: string) => sql()`delete from p
 export async function changesSince(since: number | null, user: User | null) {
   const db = sql();
   if (Math.random() < 0.02) await db`delete from public.doc_changes where at < now() - interval '1 day'`;
-  const [{ seq }] = await db<{ seq: string }[]>`select coalesce(max(seq), 0)::text as seq from public.doc_changes`;
-  if (since === null || since > Number(seq)) return { seq: Number(seq), items: [] as { c: string; id: string }[] };
-  const rows = await db<{ collection: string; id: string }[]>`select distinct collection, id from public.doc_changes where seq > ${since} limit 500`;
+  // As duas consultas não dependem uma da outra: vão juntas (se `since` passa do último número, a segunda volta vazia).
+  const [[{ seq }], rows] = await Promise.all([
+    db<{ seq: string }[]>`select coalesce(max(seq), 0)::text as seq from public.doc_changes`,
+    since === null ? [] : db<{ collection: string; id: string }[]>`select distinct collection, id from public.doc_changes where seq > ${since} limit 500`,
+  ]);
   const items = rows.filter((row) => RULES[row.collection]?.read(user, row.id)).map((row) => ({ c: row.collection, id: row.id }));
   return { seq: Number(seq), items };
 }

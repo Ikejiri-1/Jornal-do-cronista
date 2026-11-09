@@ -15,7 +15,7 @@ create table public.sessions (
   created_at timestamptz not null default now(),
   last_seen timestamptz not null default now()
 );
-create index sessions_user_id_idx on public.sessions (user_id);
+create index sessions_user_idx on public.sessions (user_id);
 create index sessions_last_seen_idx on public.sessions (last_seen);
 create table public.login_failures (
   email_hash text primary key,
@@ -38,7 +38,6 @@ create table public.docs (
   updated_at timestamptz not null default now(),
   primary key (collection, id)
 );
-create index docs_collection_updated_idx on public.docs (collection, updated_at desc);
 create table public.doc_changes (
   seq bigint generated always as identity primary key,
   collection text not null,
