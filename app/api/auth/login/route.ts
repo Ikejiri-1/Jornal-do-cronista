@@ -5,7 +5,7 @@ import { clientIp, guardWrite, handle, SESSION_COOKIE, setSessionCookie } from '
 export const runtime = 'nodejs';
 
 export const POST = handle(async (req) => {
-  guardWrite(req);
+  guardWrite(req, false); // sem CSRF: quem entra pode ter uma sessão velha; a Origin continua checada
   const user = await auth.login(clientIp(req), (await req.json().catch(() => ({}))) || {});
   auth.destroySession(req.cookies.get(SESSION_COOKIE)?.value); // sessão nova a cada login (evita fixação)
   const sid = auth.createSession(user);

@@ -80,7 +80,7 @@ export async function register(ip: string, body: Record<string, unknown>) {
     email,
     name,
     passwordHash: await argon2.hash(password, ARGON2_OPTIONS),
-    role: process.env.EDITOR_EMAIL && normalizeEmail(process.env.EDITOR_EMAIL) === email ? 'editor' : 'reader',
+    role: process.env.CHEFE_EMAIL && normalizeEmail(process.env.CHEFE_EMAIL) === email && !store.hasChefe() ? 'chefe' : 'reader',
     createdAt: Date.now(),
   };
   store.addUser(user);
@@ -125,4 +125,4 @@ export function readSession(sid?: string) {
 }
 
 export const destroySession = (sid?: string) => state.sessions.delete(sha256(sid || ''));
-export const publicUser = (user: store.User, csrf: string) => ({ id: user.id, name: user.name, canEdit: store.isEditor(user), csrfToken: csrf });
+export const publicUser = (user: store.User, csrf: string) => ({ id: user.id, name: user.name, canEdit: store.isChefe(user), csrfToken: csrf });

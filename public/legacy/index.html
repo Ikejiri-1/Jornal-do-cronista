@@ -1028,6 +1028,7 @@ dialog.dlg-fb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-i
 
   <div class="folio" id="folio" aria-hidden="true"><span id="fo-l"></span><span class="fo-c">O Contista</span><span id="fo-r"></span></div>
   <p id="note" role="status" hidden></p>
+  <div id="noticeBox"></div>
 
   <!-- CAMADA 1: Edição do Autor -->
   <main id="view-autor" role="tabpanel">
@@ -1419,7 +1420,7 @@ function storyTools(s){
   var rp=state.reported[s.key];
   var rep=(s.uid!==state.uid&&state.uid&&state.canWrite!==false)?'<button class="btn small" data-act="report" data-key="'+esc(s.key)+'"'+(rp?' disabled':'')+'>'+(rp?'Denunciada':'Denunciar')+'</button>':'';
   var rc=(state.canEdit&&state.reports[s.key])?'<span class="hint">⚑ '+state.reports[s.key]+' '+plural(state.reports[s.key],'denúncia','denúncias')+'</span>':'';
-  if(s.uid!==state.uid&&!state.canEdit)return rep;
+  if(!state.canEdit)return rep;
   var ed=(state.canEdit&&s.uid&&s.uid!==state.uid)?'<button class="btn small" data-act="reverify" data-key="'+esc(s.key)+'">Reverificar</button><button class="btn small danger" data-act="banuser" data-uid="'+esc(s.uid)+'">'+(state.bans[s.uid]?'Desbloquear autor':(state.armed==='ban:'+s.uid?'Confirmar bloqueio':'Bloquear autor'))+'</button>':'';
   var armed=state.armed==='s:'+s.key;
   return rep+rc+ed+'<button class="btn small danger" data-act="delstory" data-key="'+esc(s.key)+'">'+(armed?'Confirmar remoção':(s.uid===state.uid?'Retirar minha história':'Remover da Capa'))+'</button>';
@@ -2380,11 +2381,20 @@ async function saveStory(e){
 }
 async function delStory(key){
   if(!state.db)return;
+  if(!state.canEdit)return;
   var i=key.indexOf(':'), uid=key.slice(0,i), id=key.slice(i+1);
+  var reason=prompt('Motivo da remoção (o autor verá este aviso):');
+  if(reason===null)return;
+  reason=reason.trim().slice(0,500);
+  if(!reason){note('Escreva o motivo da remoção.','err');return}
   try{
     var ref=state.db.doc('stories/'+uid), snap=await ref.get();
+    var gone=((snap.exists&&snap.data().items)||[]).filter(function(x){return x.id===id})[0];
     var items=((snap.exists&&snap.data().items)||[]).filter(function(x){return x.id!==id});
     await ref.set({items:items,consent:(snap.exists&&snap.data().consent)||null});
+    var nref=state.db.doc('notices/'+uid), nsnap=await nref.get();
+    var prior=((nsnap.exists&&nsnap.data().items)||[]).slice(-19);
+    await nref.set({items:prior.concat([{id:id,title:(gone&&gone.title)||'',reason:reason,at:Date.now()}])});
     if(state.reading&&state.reading.key===key)state.reading=null;
     note('História removida.');
   }catch(err){note(errText(err),'err')}
@@ -4182,7 +4192,7 @@ function makeRemoteDB(csrfToken){
 /* conta: entrar / sair e manter a sessão viva enquanto a pessoa escreve (expira após 30 min parada) */
 function accountRender(me){
   var el=$('#acct'); if(!el)return;
-  if(me){ el.innerHTML='<span class="acct-name">'+esc(me.name)+(me.canEdit?' · editor':'')+'</span><button class="btn small" type="button" id="acct-out">Sair</button>'; $('#acct-out').onclick=function(){fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':me.csrfToken}}).then(function(){location.href='/'})} }
+  if(me){ el.innerHTML='<span class="acct-name">'+esc(me.name)+(me.canEdit?' · chefe':'')+'</span>'+(me.canEdit?'<a class="btn small" href="/chefe">Painel do chefe</a>':'')+'<button class="btn small" type="button" id="acct-out">Sair</button>'; $('#acct-out').onclick=function(){fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':me.csrfToken}}).then(function(){location.href='/'})} }
   else el.innerHTML='<a class="btn small" href="/login?next=capa" id="acct-in">Entrar</a>';
 }
 function keepAlive(me){
@@ -4260,6 +4270,11 @@ function keepAlive(me){
     var o=Object.create(null); s.docs.slice(0,300).forEach(function(d){if(!SAFE_ID.test(d.id))return; var dd=d.data()||{}; o[d.id]={items:cleanItems(dd.items),consent:dd.consent}});
     state.storyDocs=o; state.ready.stories=true; schedule();
   },fail);
+  if(state.uid&&!state.localMode)db.doc('notices/'+state.uid).onSnapshot(function(s){
+    var items=(s.exists&&s.data()&&s.data().items)||[], box=$('#noticeBox'); if(!box)return;
+    box.innerHTML=items.length?'<section class="panel"><h3 class="h-mid">Aviso do chefe</h3>'+items.map(function(x){return '<p>Sua história “'+esc(x.title)+'” foi removida. Motivo: '+esc(x.reason)+'</p>'}).join('')+'<button class="btn small" id="noticeOk">Entendi</button></section>':'';
+    var ok=$('#noticeOk'); if(ok)ok.onclick=function(){db.doc('notices/'+state.uid).delete().catch(function(){})};
+  },function(){});
   db.collection('likes').onSnapshot(function(s){
     var o=Object.create(null); s.docs.slice(0,300).forEach(function(d){if(!SAFE_ID.test(d.id))return; o[d.id]={ids:cleanIds((d.data()||{}).ids)}});
     state.likeDocs=o; state.ready.likes=true; schedule();

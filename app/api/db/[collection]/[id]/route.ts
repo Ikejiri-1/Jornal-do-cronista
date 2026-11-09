@@ -15,11 +15,11 @@ async function target(ctx: Ctx) {
 }
 
 // Escrita: precisa de sessão, CSRF e permissão. Recurso alheio responde 404.
-async function authorizedWrite(req: NextRequest, ctx: Ctx) {
+async function authorizedWrite(req: NextRequest, ctx: Ctx, removing = false) {
   const session = guardWrite(req);
   if (!session) throw fail(401, 'NAO_AUTENTICADO', 'Entre na sua conta para continuar.');
   const found = await target(ctx);
-  if (!found.rule.write(session.user, found.id)) throw fail(404, 'NAO_ENCONTRADO', 'Documento inexistente.');
+  if (!(removing && found.rule.remove ? found.rule.remove : found.rule.write)(session.user, found.id)) throw fail(404, 'NAO_ENCONTRADO', 'Documento inexistente.');
   return { ...found, user: session.user };
 }
 
@@ -45,7 +45,7 @@ export const PATCH = handle(async (req, ctx: Ctx) => {
 });
 
 export const DELETE = handle(async (req, ctx: Ctx) => {
-  const { collection, id } = await authorizedWrite(req, ctx);
+  const { collection, id } = await authorizedWrite(req, ctx, true);
   store.deleteDoc(collection, id);
   return ok(null);
 });

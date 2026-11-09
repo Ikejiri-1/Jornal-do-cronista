@@ -1,7 +1,7 @@
 # Contrato da API (Next.js, sem banco de dados por enquanto)
 
 Rodar: `npm install`, `npm run build` e `npm start` (http://localhost:3000), ou `npm run dev`.
-Para ter um editor: `EDITOR_EMAIL=seu@email npm start` e cadastre-se com esse e-mail.
+Para ter o chefe (Raul, único): `CHEFE_EMAIL=seu@email npm start` e cadastre-se com esse e-mail.
 Atrás de proxy HTTPS: `NODE_ENV=production` e `TRUST_PROXY=1` (sem isso o limite de tentativas por IP é global).
 Dados: memória + snapshot em `data/store.json` (ignorado pelo git). Sessões e contadores somem ao reiniciar.
 
@@ -18,10 +18,10 @@ Envelope: sucesso `{data}`; erro `{error:{code,message,field?}}`. Códigos: VALI
 
 ## Documentos (`/api/db/:colecao[/:id]`)
 GET lista/lê (público, exceto waitlist/requests/reports), PUT grava, PATCH mescla, DELETE apaga, `GET /api/db/stream` (SSE de mudanças). Regras em `lib/store.ts` (RULES): dono do documento ou editor; recurso alheio devolve 404.
-`stories`: autor comum nunca aprova a si mesmo; história nova ou alterada entra com `status:'analise'` e só o editor aprova.
+`stories`: autor comum só acrescenta (não altera nem remove); história nova entra com `status:'analise'` e só o chefe aprova, altera ou remove. `notices/:idDoAutor`: aviso do chefe sobre história removida; só o chefe grava, o autor lê e dispensa.
 
 ## Desvios a confirmar com quem gerencia o projeto
-- Sem verificação de e-mail, redefinição de senha, login com Google e 2FA: faltam serviço de e-mail e provedor. Sem verificação, o cadastro duplicado revela que o e-mail existe e quem registrar `EDITOR_EMAIL` primeiro vira editor.
+- Sem verificação de e-mail, redefinição de senha, login com Google e 2FA: faltam serviço de e-mail e provedor. Sem verificação, o cadastro duplicado revela que o e-mail existe e quem registrar `CHEFE_EMAIL` primeiro vira chefe.
 - Contadores de tentativa e sessões em memória (a skill pede Redis).
 - A vistoria de originalidade por IA não roda neste servidor: toda história espera aprovação do editor.
 - O app do jornal ainda é HTML + JS legado dentro do Next; só o login é React.
