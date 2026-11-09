@@ -26,8 +26,11 @@ for (const view of fs.readdirSync(BASELINE)) {
     const pngB = path.join(NOVO, view, file);
     if (!fs.existsSync(pngB)) { rows.push({ tela: `${view}/${name}`, texto: 'FALTA', 'pixels %': '-', altura: '-' }); falhas++; continue; }
     const b = PNG.sync.read(fs.readFileSync(pngB));
-    const txtA = fs.readFileSync(path.join(dirA, name + '.txt'), 'utf8');
-    const txtB = fs.readFileSync(path.join(NOVO, view, name + '.txt'), 'utf8');
+    const lf = (t) => t.replace(/
+/g, '
+'); // o Git pode trocar o fim de linha dos .txt no checkout
+    const txtA = lf(fs.readFileSync(path.join(dirA, name + '.txt'), 'utf8'));
+    const txtB = lf(fs.readFileSync(path.join(NOVO, view, name + '.txt'), 'utf8'));
     const mesmoTexto = txtA === txtB;
     // Alturas diferentes: compara só a parte em comum e conta a diferença de altura como falha.
     const w = Math.min(a.width, b.width), h = Math.min(a.height, b.height);
