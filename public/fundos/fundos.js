@@ -2,8 +2,11 @@
    scenes.js define window.TEMAS e window.CENAS. API: Fundos.tema(nomeOuId) troca de seção; a opção 1-3 de cada tema fica salva no navegador. */
 (function init() {
   'use strict';
-  // no Next os dois scripts carregam sem ordem garantida: espera o scenes.js
-  if (!window.CENAS) return void setTimeout(init, 50);
+  // scenes.js (97 KB) só é baixado quando o fundo vai ser desenhado; o layout carrega apenas este arquivo
+  if (!window.CENAS) {
+    if (!window.__cenasCarregando) { window.__cenasCarregando = 1; var sc = document.createElement('script'); sc.src = '/fundos/scenes.js'; sc.async = true; document.head.appendChild(sc); }
+    return void setTimeout(init, 50);
+  }
   var KEY = 'fundo-opt', canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
   canvas.id = 'dream'; canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', 'Fundo ilustrado do tema escolhido.');
   document.body.insertBefore(canvas, document.body.firstChild);
