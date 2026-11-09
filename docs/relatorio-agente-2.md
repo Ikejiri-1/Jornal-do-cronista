@@ -24,3 +24,15 @@
 - views/AssinaturaView.tsx (React) substitui os construtores de HTML de foto.js. Mesmos data-act; cliques continuam no ouvinte global. Todo texto do banco passa pelo escape do React; o link de pagamento só vira link se for https.
 - Comparado com a versão antiga no navegador (3 cenários: chefe com plano editor, chefe na banca, chefe com pedidos/lista): DOM idêntico (atributos em ordem canônica). Salvar pagamento e entrar na lista de espera funcionam; console sem erro.
 - Padrão para as próximas telas: componente em views/<Nome>View.tsx (não use o mesmo nome do .js: o Windows ignora maiúsculas), mount com flushSync, d.ts mínimos para os módulos .js que o TSX importa.
+
+### Perfil (feito)
+- views/PerfilView.tsx e views/kit.tsx (Avatar, Excerpt, OpenBtn, StatusChip) substituem os construtores de HTML de perfil.js e foto.js. Quando um texto está aberto no Perfil, o React é solto e o leitor antigo desenha em innerHTML (some quando a Leitura for convertida).
+- Reset de CSS do HTML antigo devolvido ao topo de jornal.css (achado do Agente 1).
+
+### Verificação (linha de base do Agente 1, commit 4466ff0)
+- Depois do merge da agente-3 (b620ce9): tests/baseline/compare.mjs passa nas 24 telas (desktop e celular), texto idêntico e diferença de pixels dentro do limite.
+- tsc sem erro, next build ok, 22 testes de unidade passam (node --test "app/_jornal/features/**/*.test.mjs" "app/_jornal/core/*.test.ts").
+
+### Falta da Etapa 2
+- Converter: Capa, Leituras, Enviados da semana, Edição do Autor, Introdução. Depois: desempenho percebido (tarefa 4), revisão de segurança do front (5), remover engine.js (6).
+- Medição de 200 ms para criar/remover conto e roteiro manual completo ainda não feitos.
