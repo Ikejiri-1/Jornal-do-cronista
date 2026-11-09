@@ -26,9 +26,7 @@ for (const view of fs.readdirSync(BASELINE)) {
     const pngB = path.join(NOVO, view, file);
     if (!fs.existsSync(pngB)) { rows.push({ tela: `${view}/${name}`, texto: 'FALTA', 'pixels %': '-', altura: '-' }); falhas++; continue; }
     const b = PNG.sync.read(fs.readFileSync(pngB));
-    const lf = (t) => t.replace(/
-/g, '
-'); // o Git pode trocar o fim de linha dos .txt no checkout
+    const lf = (t) => t.split('\r\n').join('\n'); // o Git pode trocar o fim de linha dos .txt no checkout
     const txtA = lf(fs.readFileSync(path.join(dirA, name + '.txt'), 'utf8'));
     const txtB = lf(fs.readFileSync(path.join(NOVO, view, name + '.txt'), 'utf8'));
     const mesmoTexto = txtA === txtB;
