@@ -60,7 +60,7 @@ Valores de lançamento. A taxa do meio de pagamento já está incluída no preç
 Como assinar
 Escolha o plano acima e entre na lista de espera.
 Pague pelo link do Raul. O link ainda não foi publicado; o Raul avisa aqui quando abrir.
-Informe o seu código de leitor no pagamento: I3YKEY. O Raul ativa o plano e o seu cartão aparece aqui.
+Informe o seu código de leitor no pagamento: . O Raul ativa o plano e o seu cartão aparece aqui.
 O pagamento acontece fora do site. Ao entrar na lista, você concorda com a política de privacidade.
 As regras do jornal
 1 · PAGAR NÃO COMPRA VOTO

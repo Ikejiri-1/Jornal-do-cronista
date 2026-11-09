@@ -15,9 +15,9 @@ const VIEWS = {
 };
 const LAYERS = ['capa', 'autor', 'leituras', 'envios', 'assinatura', 'perfil'];
 
-// Remove o que muda a cada execução (relógio, data, animações, fundo animado) sem tocar no que o usuário vê.
+// Remove o que muda a cada execução (relógio, data, animações, fundo animado, código de leitor, que vem do id aleatório do usuário) sem tocar no que o usuário vê.
 const FREEZE = `*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}
-#dl-clock,#dl-date,#dream,#fundo-bar,#fundo-cap,#fo-r,#fo-l{visibility:hidden!important}`;
+#dl-clock,#dl-date,#dream,#fundo-bar,#fundo-cap,#fo-r,#fo-l,.sub-code{visibility:hidden!important}`;
 
 async function login(context, email) {
   const res = await context.request.post(BASE + '/api/auth/login', { data: { email, password: PASS }, headers: { Origin: BASE } });
