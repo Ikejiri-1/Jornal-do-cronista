@@ -30,11 +30,11 @@ Perfil
 O Contista
 Leituras
 Escolha um tipo de escrita para ver o catálogo e ler os textos de Raul Xavier.
-Você já leu 0 de 6 leituras.
+Você já leu 0 de 7 leituras.
 Me surpreenda
 Minha estante (0)
 CATÁLOGO · TIPOS DE ESCRITA
-6
+7
 Todas
 Todos os textos, do mais recente ao mais antigo.
 ABRIR LEITURAS
@@ -42,10 +42,10 @@ ABRIR LEITURAS
 Contos
 Histórias curtas, com uma virada no fim.
 ABRIR LEITURAS
-1
+2
 Poemas
 Versos para ler devagar.
-ABRIR LEITURA
+ABRIR LEITURAS
 1
 Aventuras
 Mapas, viagens e travessias.

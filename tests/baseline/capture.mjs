@@ -52,6 +52,11 @@ async function revealLazy(page) {
   await page.waitForTimeout(300);
 }
 
+// Trava: a linha de base só vale com os dados do seed (outro conteúdo no banco muda as telas sem que nada tenha quebrado).
+const probe = await fetch(BASE + '/api/db/works/obra1').then((r) => r.json()).catch(() => ({}));
+const stories = await fetch(BASE + '/api/db/stories').then((r) => r.json()).catch(() => ({}));
+if (!probe.data?.exists || stories.data?.length !== 2) throw new Error('banco sem os dados do seed: rode antes node tests/baseline/seed.mjs');
+
 const browser = await chromium.launch({ channel: 'msedge' });
 const errors = [];
 for (const view of Object.keys(VIEWS)) {
