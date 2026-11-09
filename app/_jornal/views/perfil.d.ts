@@ -10,3 +10,4 @@ export function profileStoriesOf(id: string): any[];
 export function followersOf(id: string): string[];
 export function followingOf(id: string): string[];
 export function isFollowing(id: string): boolean;
+export function profileIdOfItem(item: unknown): string | undefined;

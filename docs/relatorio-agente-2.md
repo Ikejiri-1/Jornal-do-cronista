@@ -36,3 +36,10 @@
 ### Falta da Etapa 2
 - Converter: Capa, Leituras, Enviados da semana, Edição do Autor, Introdução. Depois: desempenho percebido (tarefa 4), revisão de segurança do front (5), remover engine.js (6).
 - Medição de 200 ms para criar/remover conto e roteiro manual completo ainda não feitos.
+
+### Capa (feita)
+- views/CapaView.tsx (abas, manchete, páginas 2 a 5, colunas) e views/pecas.tsx (AuthorLink, Byline, LikeBtn, Stars, ReaderTools, CommentsBox, ArtSvg/ArtFigure, ChessSlot) substituem coverHtml/renderCapa e os construtores de edicao.js/semana.js para essa tela. As peças valem também para Leituras, Enviados e Autor.
+- O xadrez continua carregado sob demanda pelo engine.js (chessHtml em uma casca React).
+- Único dangerouslySetInnerHTML: as ilustrações fixas do projeto (IN_SC, IN_ONCE), nunca texto de usuário.
+- Verificado: linha de base 24/24 (capa em desktop e celular), as 6 páginas abrem sem erro de console, com estrelas, caixa de comentários e SVGs esperados.
+- NÃO verificado: abrir um texto a partir da Capa (modo leitura) e voltar; curtir/avaliar/comentar na Capa; páginas 2 a 6 contra a linha de base (ela só cobre a página 1).

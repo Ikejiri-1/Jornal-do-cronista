@@ -2,3 +2,4 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const state: any;
 export function fmtDate(ms: number): string;
+export function plural(n: number, a: string, b: string): string;

@@ -10,6 +10,7 @@ import { pageRustle } from './views/imersivo.js';
 import { WK_EPOCH, artFigure, closeLabel, dShort, deckOf, editionData, emptyPage, likeCounts, weekLabel, weekNoOf, weekNow, weekRange } from './views/semana.js';
 import { MESL, colsHtml, edHead, editionPage } from './views/edicao.js';
 import { inEl, introFinish, introSize } from './views/introducao.js';
+import { mountCapa, unmountCapa } from './views/CapaView';
 import { createOriginality } from './features/originality/index.js';
 import { createTypewriter } from './features/typewriter/index.js';
 import { createUx } from './features/ux/index.js';
@@ -41,36 +42,16 @@ export function banUser(u){ return orig.banUser(u); }
 export function renderPending(){ return orig.renderPending(); }
 
 export 
-function coverHtml(ed){
-  var m=ed.list[0]; if(!m)return emptyPage(1);
-  var h='<article class="cover"><div class="cover-txt"><p class="kicker">Manchete da semana · '+esc(m.genre)+'</p><h2 class="cover-h">'+openBtn(m,'hl',esc(m.title))+'</h2><p class="cover-deck">'+deckOf(m)+'</p><p class="byline">'+bylineOf(m)+' · <b>'+m.likes+' '+plural(m.likes,'voto','votos')+'</b></p><p class="jump">Texto completo na 1ª Página ›</p></div>'+artFigure(m,true)+'</article>';
-  var bx=[]; if(ed.list[1])bx.push(['2º lugar · pág. 2',ed.list[1],3]); if(ed.list[2])bx.push(['3º lugar · pág. 3',ed.list[2],4]);
-  if(ed.pick)bx.push(['Texto do editor · pág. 4',ed.pick,5]); bx.push(['Mais textos · pág. 5',null,6]);
-  return h+'<div class="cover-side">'+bx.map(function(b){
-    return '<div class="box"><p class="kicker">'+b[0]+'</p>'+(b[1]?'<h3 class="h-mid"><button class="hl" data-act="page" data-n="'+b[2]+'">'+esc(b[1].title)+'</button></h3><p class="byline">'+bylineOf(b[1])+'</p>':'<h3 class="h-mid"><button class="hl" data-act="page" data-n="6">Quatro colunas de leitura</button></h3>')+'</div>';
-  }).join('')+'</div>';
-}
-export 
 function renderCapa(){
   var tabs=$('#pageTabs'), body=$('#capaBody'); renderComposer();
   if(state.reading){
     tabs.hidden=true;
     var it=findItem(state.reading); if(!it){state.reading=null;return renderCapa()}
-    body.className=''; body.innerHTML=articleHtml(it); return;
+    unmountCapa(tabs,body); body.className=''; body.innerHTML=articleHtml(it); return;
   }
   tabs.hidden=false;
   if(state.capaPage>6)state.capaPage=6;
-  tabs.innerHTML=[1,2,3,4,5,6].map(function(p){return '<button class="ptab" data-act="page" data-n="'+p+'"'+(p===state.capaPage?' aria-current="page"':'')+'>'+ord(p)+'</button>'}).join('');
-  var ed=editionData(), p=state.capaPage;
-  var sub=ed.mode==='real'?'Edição nº '+ed.week+' · semana de '+weekLabel(ed.week):(ed.mode==='inaugural'?'Edição inaugural · textos de exemplo':'Semana sem envios · textos de exemplo');
-  var html=edHead(p,ed);
-  if(ed.mode==='inaugural')html+='<p class="pageinfo">A primeira edição com os textos dos leitores sai na segunda-feira, '+dShort(weekRange(weekNow()+1)[0])+'. Até lá, esta é uma edição de exemplo.</p>';
-  else if(ed.mode==='vazia')html+='<p class="pageinfo">Ninguém enviou textos na semana passada. Esta é uma edição de exemplo.</p>';
-  if(p===1)html+=coverHtml(ed)+chessHtml();
-  else if(p>=2&&p<=4)html+=ed.list[p-2]?editionPage(ed.list[p-2],p):emptyPage(p);
-  else if(p===5)html+=ed.pick?editionPage(ed.pick,p):emptyPage(p);
-  else html+=colsHtml(ed);
-  body.className='fold'; body.innerHTML=html;
+  body.className='fold'; mountCapa(tabs,body);
 }
 export 
 
