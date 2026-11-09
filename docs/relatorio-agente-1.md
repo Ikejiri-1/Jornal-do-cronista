@@ -30,7 +30,7 @@ Branch `agente-1`, worktree `C:\Users\ikeji\jornal-agente-1`. Banco local `jorna
 
 ## Decisões para o dono do projeto
 
-- **Campo `check` da vistoria:** o servidor descarta o `check` enviado pelo leitor e força `status:'analise'`. É o padrão seguro (um `check` do navegador pode ser forjado), mas o chefe vê "esta história não tem registro de vistoria". Se quiser guardar o motivo, o servidor teria de aceitar um `check` sanitizado (só texto curto e números) e a tela do chefe deveria dizer que é informado pelo autor, não verificado. Achado do Agente 3.
+- **Campo `check` da vistoria (DECIDIDO pelo dono: manter como está):** o servidor descarta o `check` enviado pelo leitor e força `status:'analise'`. É o padrão seguro (um `check` do navegador pode ser forjado), mas o chefe vê "esta história não tem registro de vistoria". Se quiser guardar o motivo, o servidor teria de aceitar um `check` sanitizado (só texto curto e números) e a tela do chefe deveria dizer que é informado pelo autor, não verificado. Achado do Agente 3. Decisão: o servidor continua descartando o `check` do leitor e forçando `status:'analise'`; o chefe usa "Reverificar" na tela dele. Nada a mudar no servidor.
 - **Sessão em memória** (item 3 acima): mais velocidade, com a contrapartida descrita.
 - **Índice em `docs`** (item 7): só quando o volume justificar.
 
