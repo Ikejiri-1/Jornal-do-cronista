@@ -43,3 +43,31 @@
 - Único dangerouslySetInnerHTML: as ilustrações fixas do projeto (IN_SC, IN_ONCE), nunca texto de usuário.
 - Verificado: linha de base 24/24 (capa em desktop e celular), as 6 páginas abrem sem erro de console, com estrelas, caixa de comentários e SVGs esperados.
 - NÃO verificado: abrir um texto a partir da Capa (modo leitura) e voltar; curtir/avaliar/comentar na Capa; páginas 2 a 6 contra a linha de base (ela só cobre a página 1).
+
+### Enviados, Leituras e Autor (feitos)
+- views/EnviosView.tsx, views/LeiturasView.tsx (Autor + Leituras), views/historia.tsx (StoryTools, StoryPiece, WorkTools, LeituraPiece).
+- Linha de base: só difere o relógio "Fecha em X dias e Y h" (varia com a hora; texto e imagem iguais fora isso).
+
+### Limpeza do engine.js (feita)
+- renderCapa -> views/capa.js; renderEnvios -> views/envios.js; dvPage, introDive e inDiveCtl -> views/modalidade.js; chipOf removido (PerfilView usa StatusChip).
+- engine.js ficou só com as pontes para features/ (Agente 3) e o carregador do xadrez. Não tem mais lógica de tela.
+
+## Fechamento da Etapa 2
+
+### Segurança do front (tarefa 5)
+- Os 3 dangerouslySetInnerHTML: Jornal.tsx (marcação fixa do projeto) e 2 em pecas.tsx (ilustrações fixas IN_SC/IN_ONCE). Nenhum recebe texto de usuário.
+- Telas em React: todo texto do banco escapado pelo React. Nas que ainda usam innerHTML (render.js, imersivo.js, foto.js honorRoll, mesa.js opções, remotedb.js conta/avisos, modalidade/introducao): auditei cada uma, todas passam o texto do banco por esc() ou só têm texto fixo. INJ_RE/limpezas seguem em core/seguranca.js; toda escrita sai por core/db.ts com X-CSRF-Token.
+- Leitor de texto (articleHtml em html.js) continua em string, com esc() em tudo; é a próxima candidata a converter.
+
+### Desempenho percebido (tarefa 4)
+- render() só desenha a aba ativa; o React só mexe no que mudou. Gravar é otimista (core/db.ts).
+- Medido no build de produção, banco local: remover conto como chefe some da tela em 34 ms (e o servidor confirma); o envio mostra a primeira resposta em 24 ms e o "Enviado ao editor" logo depois.
+
+### Roteiro manual no build de produção (banco local, 1 conto removido de cada vez)
+- Passou: cadastro, login, criar conto, remover conto como chefe (a tela muda na hora; o aviso do autor foi gravado em `notices`), editar perfil (salva; atualiza a tela depois de sair do campo), assinatura (salvar pagamento, lista de espera), sair, Capa páginas 1 a 6. Console sem erro em todas.
+
+### O que NÃO foi feito ou verificado (ressalvas)
+- Introdução animada (introducao.js, modalidade.js): NÃO convertida para React. É animação imperativa (SVG/timers) com texto fixo e sem dado de usuário; converter só aumentaria o risco. Fica como módulo ES.
+- Leitor de texto (articleHtml) ainda em string com esc().
+- Não testados na tela: curtir, avaliar, comentar, seguir, trocar foto, ativar assinatura pelo painel, celular/iOS manual, modo leitura a partir da Capa.
+- Os testes de unidade cobrem só core/db.ts (10) e os da Etapa 3.

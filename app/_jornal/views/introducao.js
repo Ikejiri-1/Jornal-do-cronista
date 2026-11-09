@@ -1,6 +1,6 @@
 /* gerado a partir de engine.js (Etapa 2, passo 0). Corpo igual ao original; só mudou onde cada coisa mora. */
 import { $ } from '../core/base.js';
-import { introDive } from '../engine.js';
+import { introDive } from './modalidade.js';
 import { rmq } from './modalidade.js';
 
 export let IN_SC, IN_ONCE, ART_TOP, IN_STOPS, inI, inLock, inEl, inWvT, inFadeT, inAuto, inAutoT, inBuilt, inLeaving, inInk;
