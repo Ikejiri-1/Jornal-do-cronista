@@ -7,85 +7,9 @@ import { FOLLOWING_LIMIT, PROFILE_BIO_MAX_LENGTH, PROFILE_NAME_MAX_LENGTH } from
 import { cleanChiefRequest, cleanProfilePhoto, safePaymentUrl } from '../views/foto.js';
 import { cleanComments, cleanRatings } from '../views/edicao.js';
 import { makeLocalDB } from './localdb.js';
+import { makeRemoteDB } from './db';
 
-export 
-/* ---------- servidor próprio: mesma interface coleção/documento, agora pela API (leitura pública, escrita só com sessão) ---------- */
-function makeRemoteDB(csrfToken,isChief){
-  /* Cache em memória alimentado por UMA requisição na abertura (/api/db/bootstrap) e mantido por consulta de "o que mudou".
-     Gravar atualiza a tela na hora (otimista) e desfaz se o servidor recusar; antes a tela esperava até 15 s pela próxima consulta. */
-  var subs=[], cache=null, boot=null, seq=null, polling=false;
-  function api(method,url,body){
-    var headers={'Content-Type':'application/json'}; if(csrfToken)headers['X-CSRF-Token']=csrfToken;
-    return fetch(url,{method:method,credentials:'same-origin',headers:headers,body:body===undefined?undefined:JSON.stringify(body)}).then(function(r){
-      return r.json().catch(function(){return {}}).then(function(j){
-        if(!r.ok){var e=new Error((j.error&&j.error.message)||'Erro'); e.code=j.error&&j.error.code; e.status=r.status; throw e}
-        return j.data;
-      });
-    });
-  }
-  var path=function(c,id){return '/api/db/'+encodeURIComponent(c)+(id===undefined?'':'/'+encodeURIComponent(id))};
-  function docSnap(id,r){return {id:id,exists:!!(r&&r.exists),data:function(){return r&&r.exists?r.data:undefined}}}
-  function snapOf(sub){
-    var m=cache&&cache[sub.c]; if(!m)return null;
-    if(sub.id===undefined)return {docs:Array.from(m,function(e){return {id:e[0],exists:true,data:function(){return e[1]}}})};
-    return m.has(sub.id)?docSnap(sub.id,{exists:true,data:m.get(sub.id)}):docSnap(sub.id,{exists:false});
-  }
-  function emit(c,id){subs.slice().forEach(function(sub){if(sub.c===c&&(id===undefined||sub.id===undefined||sub.id===id)){var s=snapOf(sub); if(s)sub.cb(s)}})}
-  function put(c,id,v){var m=new Map([[id,v]]); (cache[c]||new Map()).forEach(function(x,k){if(k!==id)m.set(k,x)}); cache[c]=m} // mais recente primeiro, como o servidor lista
-  function drop(c,id){if(cache[c]){var m=new Map(cache[c]); m.delete(id); cache[c]=m}}
-  function pull(c,id){return api('GET',path(c,id)).then(function(r){if(!cache)return; if(r&&r.exists)put(c,id,r.data); else drop(c,id); emit(c,id)})}
-  function refetch(sub){ // caminho de reserva: se a abertura em lote falhar, cada assinatura busca o seu
-    var p=sub.id===undefined?api('GET',path(sub.c)).then(function(list){sub.cb({docs:list.map(function(d){return {id:d.id,exists:true,data:function(){return d.data}}})})}):api('GET',path(sub.c,sub.id)).then(function(r){sub.cb(docSnap(sub.id,r))});
-    p.catch(function(e){if(sub.fail)sub.fail(e)});
-  }
-  function load(){
-    return boot||(boot=api('GET','/api/db/bootstrap').then(function(r){
-      cache={}; Object.keys(r.collections).forEach(function(c){cache[c]=new Map(r.collections[c].map(function(d){return [d.id,d.data]}))});
-      seq=r.seq; return true;
-    }).catch(function(){return false}));
-  }
-  function tick(){
-    if(document.hidden||!cache)return;
-    api('GET','/api/db/changes?since='+seq).then(function(r){seq=r.seq; r.items.forEach(function(m){pull(m.c,m.id).catch(function(){})})}).catch(function(){});
-  }
-  function open(){if(polling)return; polling=true; setInterval(tick,15000); document.addEventListener('visibilitychange',tick)}
-  function listen(c,id,cb,fail){
-    var sub={c:c,id:id,cb:cb,fail:fail}; subs.push(sub); open();
-    load().then(function(ok){
-      if(subs.indexOf(sub)<0)return;
-      var s=ok&&cache[c]?snapOf(sub):null;
-      if(s)cb(s); else refetch(sub);
-    });
-    return function(){subs=subs.filter(function(x){return x!==sub})};
-  }
-  /* shortcut: nas histórias o servidor reescreve o documento (status, data, consentimento), então ali a tela usa a resposta dele em vez do palpite local */
-  function write(c,id,method,v,guess){
-    if(!cache)return api(method,path(c,id),{data:v});
-    var old=cache[c]&&cache[c].get(id), optimistic=c!=='stories'||!!isChief; // a gravação do chefe nas histórias não é reescrita pelo servidor
-    if(optimistic){put(c,id,guess(old)); emit(c,id)}
-    return api(method,path(c,id),{data:v}).then(function(saved){
-      if(saved&&typeof saved==='object'){put(c,id,saved); emit(c,id)}
-    },function(e){
-      if(optimistic){if(old===undefined)drop(c,id); else put(c,id,old); emit(c,id)}
-      throw e;
-    });
-  }
-  function docRef(c,id){return {
-    get:function(){return api('GET',path(c,id)).then(function(r){return docSnap(id,r)})},
-    set:function(v){return write(c,id,'PUT',v,function(){return v})},
-    update:function(v){return write(c,id,'PATCH',v,function(old){return Object.assign({},old,v)})},
-    delete:function(){
-      if(!cache)return api('DELETE',path(c,id));
-      var old=cache[c]&&cache[c].get(id); drop(c,id); emit(c,id);
-      return api('DELETE',path(c,id)).catch(function(e){if(old!==undefined){put(c,id,old); emit(c,id)} throw e});
-    },
-    onSnapshot:function(cb,fail){return listen(c,id,cb,fail)}
-  }}
-  return {
-    collection:function(c){return {doc:function(id){return docRef(c,id)},onSnapshot:function(cb,fail){return listen(c,undefined,cb,fail)}}},
-    doc:function(p){var i=p.indexOf('/'); return docRef(p.slice(0,i),p.slice(i+1))}
-  };
-}
+/* ---------- servidor próprio: a camada de dados está em db.ts ---------- */
 export 
 /* conta: entrar / sair e manter a sessão viva enquanto a pessoa escreve (expira após 30 min parada) */
 function accountRender(me){
