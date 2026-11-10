@@ -34,9 +34,13 @@ Com o servidor no ar (`DATABASE_URL` igual à do passo 2, `BASE_URL` com a porta
 | `node tests/perf/latency-proxy.mjs 54335 54329 50` | proxy que atrasa o banco; aponte um segundo servidor para a porta 54335 e rode o perf com `BASE_URL` dele |
 | `node tests/baseline/seed.mjs` | popula dados fixos (chefe, 2 autores, obras, histórias) |
 | `npm run test:baseline` | captura `/` e compara com a linha de base do legado: texto idêntico e no máximo 0,5% de pixels diferentes, em desktop (1280) e celular (390). Precisa do seed antes |
-| `node tests/baseline/capture.mjs <pasta> /legacy/index.html` | regera a linha de base do legado (só se o legado ou o seed mudarem); recusa rodar fora do seed |
+| `node tests/e2e/fluxos.mjs` | 11 fluxos no navegador: criar conto, aprovar, curtir, avaliar, comentar, seguir, remover como chefe (com aviso ao autor), editar perfil. Precisa do seed antes. Falha se a máquina de escrever demorar mais de 2,5 s para fechar depois de enviar |
+| `node tests/perf/bundle.mjs` | tamanho do JS comprimido que a home baixa |
+| `node tests/baseline/capture.mjs <pasta> [prefixo]` | captura as telas (usada pelo `compare`); recusa rodar fora do seed |
 
-Os testes de unidade do front (xadrez, vistoria, camada de dados) vivem junto do código do front (`app/_jornal/**`), depois do merge das etapas 2 e 3: `node --test "app/_jornal/features/**/*.test.mjs" "app/_jornal/core/*.test.ts"`.
+A pasta `tests/baseline/legado/` é a **referência congelada** do site antigo (imagens e textos de 12 telas, em desktop e celular). O HTML antigo foi removido, então ela não pode mais ser regerada; para isso seria preciso o commit `553fa7d` (`public/legacy/index.html`). O novo espaçamento entre palavras (`word-spacing: .2em`, a pedido do dono) entrou na baseline porque foi aplicado também ao HTML antigo antes de ele sair, e a captura foi refeita. Se a aparência mudar de propósito de novo, regere as imagens a partir do site novo e registre o motivo no commit.
+
+Os testes de unidade do front (xadrez, vistoria, camada de dados) vivem junto do código (`app/_jornal/**`): `node --test "app/_jornal/features/**/*.test.mjs" "app/_jornal/core/*.test.ts"`.
 
 Requisitos: `npm install` (traz `playwright-core`, `pixelmatch`, `pngjs`) e o navegador Edge instalado (o Playwright usa o Edge do sistema, sem baixar navegador).
 

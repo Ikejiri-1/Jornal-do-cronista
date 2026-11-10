@@ -8,6 +8,7 @@ Medido no Postgres local de teste (Docker), com `next build` + `next start`. Rep
 2. **A tela abria com 14 requisições**, cada uma com a sua checagem de sessão no banco. Agora é 1 (`GET /api/db/bootstrap`).
 3. **Cada consulta ao banco paga a ida e volta de rede.** O banco (Supabase) fica em `sa-east-1` e a função da Vercel rodava na região padrão (EUA), sem `vercel.json`. Corrigido com `regions: ["gru1"]`. **Esta é a causa provável da maior parte da lentidão em produção e não pode ser medida aqui**: precisa ser conferida depois do deploy.
 4. **Idas ao banco em fila por requisição.** A sessão fazia 2 consultas; gravar fazia BEGIN, leitura, gravação e COMMIT; remover conto no front fazia 4 chamadas em sequência.
+5. **Um atraso de propósito na máquina de escrever, que existia no site antigo e que era a maior parte do "criar conto demora".** Medido no navegador, no site antigo e no novo com a mesma API: a gravação termina em ~100 ms, a confirmação "Enviado ao editor" aparece em ~110 ms, mas a máquina de escrever só fechava e levava a "Enviados" ~3,5 s depois do clique, porque consultava o resultado a cada 400 ms e depois segurava mais 2,6 s. Agora consulta a cada 50 ms e segura 0,9 s: **clique até a máquina fechar passou de ~3,5 s para ~1,1 a 1,5 s**. É uma mudança de comportamento (a máquina fica aberta menos tempo depois do envio); o tempo só precisa dar para ler a confirmação e ouvir o carro voltar. Para voltar ao tempo antigo, é só mudar `FECHA_APOS_MS` em `app/_jornal/features/typewriter/Typewriter.tsx`.
 
 ## Idas ao banco por operação (contadas no log do Postgres e no código)
 
@@ -59,7 +60,17 @@ Cada linha é a mediana de N chamadas (25 diretas, 12 com latência), servidor l
 - **A abertura nova é 4,5 vezes mais rápida que a antiga** com latência (497 contra 2242 ms) e 4 vezes mais rápida sem latência.
 - **Meta do plano não cumprida em um ponto:** "enviar conto" fica em ~1 s com o proxy (4 idas em fila: sessão, BEGIN, leitura com trava, gravação e COMMIT). Menos que isso exigiria tirar a transação (perde a proteção contra escrita simultânea nas regras "só acrescenta") ou guardar a sessão em memória (a sessão revogada continuaria valendo por alguns segundos). Não fiz nenhuma das duas sem a decisão do dono do projeto.
 - **Em produção com `gru1`** a ida e volta app↔banco deve ficar na casa de poucos milissegundos, e o envio de conto tende a ficar abaixo de 100 ms. Isto é estimativa, não medição: conferir depois do deploy (Vercel → logs da função, `Duration`).
-- Não medi o navegador de ponta a ponta (tempo até a tela mudar). Isso é da Etapa 2.
+
+### No navegador, de ponta a ponta (`tests/e2e/fluxos.mjs`, servidor e banco locais, build de produção)
+
+| Ação | Medido |
+|---|---|
+| Criar conto: da ação até a máquina de escrever fechar | ~1,1 a 1,5 s (antes ~3,5 s; a confirmação aparece em ~110 ms nos dois) |
+| Remover conto como chefe: da confirmação até a tela mudar | ~170 a 320 ms |
+| Abrir a tela | 2 requisições (`session` e `bootstrap`) em vez de 14 (medido no navegador no site antigo: `session`, `changes` e 12 leituras) |
+| JS comprimido da home (`tests/perf/bundle.mjs`) | 237,9 KB (meta era 200 KB: **não atingida**; o framework sozinho tem ~118 KB) |
+
+Sem latência de rede. Com o banco longe do servidor, some a ida e volta de cada consulta (tabela anterior), por isso o `gru1` importa.
 
 ## Consultas e índices (5 mil documentos, banco local)
 

@@ -4,7 +4,7 @@ import styles from './chefe.module.css';
 
 type Work = { id: string; title: string; genre: string; text: string; at?: number };
 const fmtDate = (at?: number) => (at ? new Date(at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'sem data');
-// Mesma lista de seções do jornal (DEFAULT_GENRES em public/legacy/index.html).
+// Mesma lista de seções do jornal (DEFAULT_GENRES em app/_jornal/core/base.js).
 const THEMES = ['Contos', 'Poemas', 'Aventuras', 'Fantasia', 'Crônicas', 'Ficção Científica', 'Terror e Suspense'];
 
 export default function ChefePanel({ csrf }: { csrf: string }) {

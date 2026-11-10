@@ -1,4 +1,4 @@
-// Gerado a partir da marcação do jornal (antes em public/legacy/index.html).
+// Gerado a partir da marcação do jornal (antes em public/legacy/index.html, removido; está no histórico do Git, commit 553fa7d).
 // Uma linha por linha da marcação, para que edições em telas diferentes não conflitem no Git.
 export default [
   "<noscript><div style=\"margin:0 0 1rem;padding:.9rem 1rem;border:3px double #000;background:#fff;color:#000;font:1rem/1.5 Georgia,serif\"><b>Este site precisa de JavaScript para funcionar.</b><br>Se você abriu o arquivo pelo app Arquivos do iPhone, a Visualização Rápida não executa o site. Abra o link do site no Safari, ou abra este arquivo em um app que execute páginas da web, como o Documents.</div></noscript>\r\n",

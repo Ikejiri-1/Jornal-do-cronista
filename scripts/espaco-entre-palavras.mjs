@@ -1,7 +1,7 @@
 // A fonte da máquina de escrever (Special Elite, var(--f-type)) tem o espaço estreito e as palavras ficam coladas.
 // Este script (re)gera, no fim do CSS, um bloco que dá `word-spacing` a toda regra que usa essa fonte.
-// Rodar de novo sempre que surgirem regras novas com var(--f-type):  node scripts/espaco-entre-palavras.mjs <arquivo.css|arquivo.html>...
-// Em .html o bloco entra antes do </style> que precede o <link ... surreal.css>.
+// Rodar de novo sempre que surgirem regras novas com var(--f-type):  node scripts/espaco-entre-palavras.mjs app/_jornal/jornal.css
+// (Os .module.css do login e do chefe levam `word-spacing: .2em` direto nas regras; não passam por aqui.)
 // Não normaliza o arquivo: só troca o bloco gerado, para o Git não ver o arquivo inteiro como alterado.
 import fs from 'node:fs';
 
@@ -12,8 +12,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 for (const file of process.argv.slice(2)) {
   let text = fs.readFileSync(file, 'utf8');
   text = text.replace(new RegExp(`(\\r?\\n)?${esc(INI)}[\\s\\S]*?${esc(FIM)}(\\r?\\n)?`), ''); // tira o bloco anterior
-  const alvo = file.endsWith('.html') ? text.search(/<\/style>\s*<link rel="stylesheet" href="\/surreal\.css">/) : text.length;
-  if (alvo < 0) throw new Error(`${file}: não achei onde inserir`);
+  const alvo = text.length;
   const eol = /\r\n/.test(text.slice(Math.max(0, alvo - 400), alvo)) ? '\r\n' : '\n'; // fim de linha do trecho onde o bloco entra
   // sem comentários (grudariam no seletor) e sem imagens embutidas em base64 (centenas de KB que travam a expressão regular)
   const css = text.slice(0, alvo).replace(/\/\*[\s\S]*?\*\//g, '').replace(/url\((["']?)data:[^)]*\)/g, 'url()');

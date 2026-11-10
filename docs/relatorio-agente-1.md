@@ -2,7 +2,30 @@
 
 Branch `agente-1`, worktree `C:\Users\ikeji\jornal-agente-1`. Banco local `jornal-pg-1` (porta 54331).
 
-## O que passou (verificado)
+## Integração (branch `integracao`, worktree `C:\Users\ikeji\jornal-integracao`)
+
+`integracao` = `agente-3` (que já continha a `agente-2`) + `agente-1`, mais as mudanças abaixo. **Não foi mesclada na `main`**: isso fica para o dono decidir.
+
+Verificado na árvore integrada, com build de produção normal (`next build`, Turbopack) e Postgres local, **depois de apagar `public/legacy/`**:
+- `tsc` limpo; build sem erro.
+- 20 de 20 testes da API; 22 de 22 testes de unidade do front.
+- 11 de 11 fluxos no navegador (`tests/e2e/fluxos.mjs`): criar conto, aprovar, curtir, avaliar, comentar, seguir, remover como chefe com aviso ao autor, editar perfil, sem erro de script no console.
+- 24 de 24 telas iguais à linha de base, em desktop e celular (`tests/baseline/compare.mjs`).
+
+Mudanças feitas na integração:
+- **Criar conto: o atraso de propósito da máquina de escrever caiu de ~3,5 s para ~1,1 a 1,5 s** (consulta a cada 50 ms em vez de 400 ms e segura 0,9 s em vez de 2,6 s). Estava igual no site antigo; era a maior parte do "criar conto demora" (a gravação em si leva ~100 ms). Detalhes em `docs/desempenho.md`.
+- Espaçamento entre palavras (`word-spacing: .2em`) na fonte da máquina de escrever, a pedido do dono: bloco gerado no fim do `jornal.css` por `scripts/espaco-entre-palavras.mjs`, mais as 7 regras de `login.module.css` e `chefe.module.css`.
+- `public/legacy/` removido (consta no histórico, commit `553fa7d`); a baseline em `tests/baseline/legado/` ficou como referência congelada.
+- Roteiro `tests/e2e/fluxos.mjs` e medição `tests/perf/bundle.mjs`.
+
+**Ainda não provado ou não atingido:**
+- JS inicial da home: **237,9 KB comprimido, meta de 200 KB não atingida** (framework ~118 KB; o resto está no motor do jornal).
+- A introdução animada continua como módulo ES (animação imperativa, sem dado do usuário) e o leitor de texto ainda monta HTML por string com `esc()` (relatado pelo Agente 2). Não os reescrevi.
+- Velocidade **em produção** não medida (só depois do deploy). Estimativa: com `gru1` a ida e volta ao banco cai para poucos ms.
+- Celular: só o que a comparação de telas cobre e a emulação do Playwright; **não testei em iPhone/Android reais** (nem o Agente 3).
+- O envio de conto com a rede simulada (proxy) continua ~1 s no servidor; ver o relatório mais abaixo (decisão do dono).
+
+## O que passou (verificado, na branch `agente-1`)
 
 - `npx tsc --noEmit` e `npx next build` sem erro.
 - `npm test`: 20 de 20 testes da API, depois de todas as otimizações. Teste dos testes: 3 regras de acesso afrouxadas de propósito derrubaram 4 testes; restaurado, voltaram a passar.

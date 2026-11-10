@@ -5,7 +5,7 @@ Para ter o chefe (Raul, único): `CHEFE_EMAIL=seu@email npm start` e cadastre-se
 Atrás de proxy HTTPS: `NODE_ENV=production` e `TRUST_PROXY=1` (sem isso o limite de tentativas por IP é global).
 Dados: Postgres (Supabase), acessado só pelo servidor como o papel `app_rw` (`DATABASE_URL`, pooler porta 6543). Usuários, sessões e limites de tentativa têm tabelas próprias; as coleções do jornal ficam em `docs` (JSONB). Migração: `schema_inicial_jornal` (ver `docs/modelo-de-dados.md`).
 
-Estrutura: `app/api/**` (Route Handlers), `lib/` (auth, store, http), `app/login` (React), `app/_jornal/**` (app do jornal, servido em `/` por `app/page.tsx`, migra para React por partes; `public/legacy/index.html` fica só como referência até a migração acabar), `public/surreal.css` (tema).
+Estrutura: `app/api/**` (Route Handlers), `lib/` (auth, store, http), `app/login` (React), `app/_jornal/**` (app do jornal, servido em `/` por `app/page.tsx`; telas em React em `views/`, máquina de escrever em `features/typewriter/`, camada de dados em `core/`), `public/surreal.css` (tema). O HTML antigo (`public/legacy/index.html`) foi removido; está no histórico do Git (commit `553fa7d`).
 Região: `vercel.json` fixa a função em `gru1` (São Paulo), perto do Supabase (`sa-east-1`). Sem isso a função roda nos EUA e cada consulta ao banco paga a ida e volta entre os dois.
 
 Envelope: sucesso `{data}`; erro `{error:{code,message,field?}}`. Códigos: VALIDACAO, CREDENCIAIS_INVALIDAS, NAO_AUTENTICADO, NAO_ENCONTRADO, CONFLITO, CSRF, LIMITE_EXCEDIDO (com Retry-After), PAYLOAD_GRANDE, ERRO_INTERNO.

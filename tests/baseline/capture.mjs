@@ -1,5 +1,5 @@
 // Captura cada tela (imagem + texto visível) em desktop e celular.
-// Uso: node tests/baseline/capture.mjs <pasta-de-saida> [prefixo-da-pagina]   (prefixo: /legacy/index.html para o legado, / para o Next)
+// Uso: node tests/baseline/capture.mjs <pasta-de-saida> [prefixo-da-pagina]   (prefixo: / para o Next; o legado /legacy/index.html foi removido, a baseline em legado/ é a referência congelada)
 // Variáveis: BASE_URL (padrão http://127.0.0.1:3100). Precisa do seed (tests/baseline/seed.mjs) já aplicado.
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';

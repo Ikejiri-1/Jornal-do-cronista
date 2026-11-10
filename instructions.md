@@ -2,6 +2,8 @@
 
 **Objetivo (do dono do projeto):** o site inteiro em Next.js, funcionando exatamente como hoje, só que mais rápido. Hoje criar e remover contos demora. Só se entrega quando estiver completo e sem erros.
 
+> **Situação ao fim da integração:** as 3 etapas foram feitas e integradas na branch `integracao`; `public/legacy/` foi removido. Resultados e o que ficou de fora estão em `docs/relatorio-agente-1.md` (integração), `docs/relatorio-agente-2.md`, `docs/relatorio-agente-3.md` e `docs/desempenho.md`. O texto abaixo é o plano original, mantido como registro.
+
 **Como ler este arquivo:** cada agente cumpre a sua etapa (1, 2 ou 3), mexe só nos arquivos que são dele e segue as regras gerais. A seção "Estado atual" diz o que já foi feito.
 
 ---
