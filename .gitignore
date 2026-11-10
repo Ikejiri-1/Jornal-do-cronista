@@ -9,3 +9,5 @@ next-env.d.ts
 .playwright-mcp/
 tests/baseline/novo/
 *.log
+# saída da ferramenta graphify: não vai para o ar nem para o repositório
+graphify-out/
