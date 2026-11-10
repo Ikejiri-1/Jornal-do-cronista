@@ -1,8 +1,29 @@
 # Verificação do banco real (Supabase) antes de publicar
 
-Objetivo: conferir que o banco real tem tudo o que o código assume. **Nada aqui foi rodado contra o banco real nesta etapa.** As consultas abaixo só leem metadados (nada de dados de usuários) e quem decide rodar é o dono: SQL Editor do Supabase, projeto `jornal-do-cronista`.
+Objetivo: conferir que o banco real tem tudo o que o código assume. As consultas abaixo só leem metadados (nada de dados de usuários). **Foram rodadas contra o banco real em 2026-11-09, com a autorização do dono; o resultado está logo abaixo.** Para repetir: SQL Editor do Supabase, projeto `jornal-do-cronista`.
 
-Comparei `db/schema.sql` (esquema usado nos testes) com `docs/modelo-de-dados.md` e com as consultas do código (`lib/auth.ts`, `lib/store.ts`). Os três concordam entre si, com uma ressalva: o `db/schema.sql` é a minha reconstrução; o banco real só foi conferido em tabelas, colunas e nomes de índices (leitura de metadados feita antes, durante a Etapa 1), e **não** em gatilho, privilégios, políticas de RLS, `ON DELETE` e configuração do papel.
+Comparei `db/schema.sql` (esquema usado nos testes) com `docs/modelo-de-dados.md` e com as consultas do código (`lib/auth.ts`, `lib/store.ts`). Os três concordam entre si, com uma ressalva: o `db/schema.sql` é a minha reconstrução do banco real, e a conferência contra o banco real está no resultado abaixo.
+
+## Resultado da verificação no banco real (2026-11-09)
+
+**Conclusão: o banco real tem tudo o que o código assume. Nada impede publicar.** Só leitura de metadados; nenhuma linha de usuário foi lida e nada foi alterado.
+
+| Item | Resultado |
+|---|---|
+| Gatilho de `doc_changes` | **Confere.** `trg_docs_mudanca`, `AFTER INSERT OR DELETE OR UPDATE ON docs FOR EACH ROW`, função `fn_registrar_mudanca()`. Trata DELETE (grava `old.collection` e `old.id`), então remoções de outro usuário chegam ao front. Não é `SECURITY DEFINER`, o que é ok porque `app_rw` tem INSERT em `doc_changes` e política que o permite. |
+| Constraints | **Conferem.** `users_email_len_check` (≤ 254), `users_email_unique`, `users_name_len_check` (2 a 40), `users_role_check` (`reader`/`chefe`), `login_failures_count_check` (`count >= 0` e `repeats >= 0`), `docs_collection_check`, `docs_id_check`, `docs_data_object_check`, `docs_data_size_check`; `sessions_user_id_fkey` com **`ON DELETE CASCADE`**. |
+| Colunas de identidade | **Conferem.** `doc_changes.seq` e `rate_hits.id` são `GENERATED ALWAYS`. |
+| Privilégios de `app_rw` | **Cobrem tudo que o código faz.** `doc_changes`: DELETE, INSERT, SELECT; `docs`, `login_failures`, `sessions`: DELETE, INSERT, SELECT, UPDATE; `rate_hits` e `users`: DELETE, INSERT, SELECT, UPDATE. `anon` e `authenticated`: nenhum privilégio. |
+| RLS e políticas | **Conferem.** As 6 tabelas têm RLS ligada. Cada uma tem uma única política (`pol_<tabela>_backend`), só para `app_rw`, comando `ALL`. Nenhuma política para `anon` ou `authenticated`. |
+| Papel `app_rw` | **Confere.** `statement_timeout=5s`, limite de 20 conexões, sem `rolsuper` e sem `rolbypassrls`. |
+| Índices | **Conferem**, os 12 esperados e nenhum a mais: `doc_changes_pkey`, `doc_changes_at_idx`, `docs_pk`, `login_failures_pkey`, `rate_hits_pk`, `rate_hits_key_idx (key, hit_at)`, `sessions_pkey`, `sessions_user_idx`, `sessions_last_seen_idx`, `users_pkey`, `users_email_unique`, `users_one_chefe`. |
+
+Observações, nenhuma bloqueia:
+1. **Privilégios maiores que o necessário.** `app_rw` pode apagar linhas de `users` e atualizar `rate_hits`, e o código não faz nenhuma das duas coisas. Retirar `DELETE` em `users` e `UPDATE` em `rate_hits` seria um endurecimento opcional; exige migração no banco real e portanto o OK do dono. **Não foi feito.**
+2. **Limite de tamanho de `docs`.** O banco real usa `pg_column_size(data) <= 1000000`; o `db/schema.sql` de teste usa 1048576. O app já limita o tamanho antes de gravar (documentos comuns 300 KB; `profiles` 1 MB), então o caso extremo é só um perfil com foto muito grande.
+3. **`db/schema.sql` tem diferenças de nome e de detalhe em relação ao banco real,** sem efeito nos testes: a função do gatilho é `docs_mudanca` (no real, `fn_registrar_mudanca`); o limite de tamanho acima; `login_failures_count_check` só confere `count` (no real, também `repeats`); e nomes de algumas constraints (`users_email_len_check`, `users_name_len_check`, `docs_collection_check`, `docs_id_check`, `docs_data_object_check`, `docs_data_size_check`). Não alinhei o arquivo.
+
+O restante deste documento são as consultas usadas, para repetir a verificação quando o banco mudar.
 
 ## O que o código faz em cada tabela
 
@@ -19,7 +40,7 @@ Comparei `db/schema.sql` (esquema usado nos testes) com `docs/modelo-de-dados.md
 
 Tabelas e colunas das 6 tabelas, `users_email_unique`, `users_one_chefe` (índice parcial), chaves primárias, e estes índices: `doc_changes_at_idx`, `rate_hits_key_idx (key, hit_at)`, `sessions_last_seen_idx`, `sessions_user_idx`, `docs_pk (collection, id)`, `rate_hits_pk`. Diferenças só de nome ou de detalhe, sem efeito no código: o real chama a chave de `docs` de `docs_pk` e a de `rate_hits` de `rate_hits_pk`; o `db/schema.sql` local tem uma verificação extra de tamanho em `docs.data` (o app já limita o tamanho no servidor).
 
-## O que falta conferir (rode e compare com o "esperado")
+## As consultas (para repetir a verificação; compare com o "esperado")
 
 **1. Gatilho que alimenta `doc_changes`** (o front depende dele para ver gravações e remoções de outros usuários):
 ```sql
