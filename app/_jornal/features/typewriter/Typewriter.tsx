@@ -20,6 +20,11 @@ const KB: Cell[][] = [
   [{ s: 1.25 }, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', { s: 1.35 }],
   [{ k: 'Ctrl', m: 1, w: 1.3 }, { k: 'Alt', m: 1, w: 1.3 }, { n: ' ', w: 5.5 }, { k: 'Alt', m: 1, w: 1.3 }, { k: 'Ctrl', m: 1, w: 1.3 }, { s: .9 }],
 ];
+// Depois de enviar, a máquina espera o servidor e fecha sozinha. Antes: consultava a cada 400 ms e segurava 2,6 s com a
+// resposta já pronta (o envio levava ~3,5 s na tela para uma gravação de ~100 ms). Agora confere a cada 50 ms e
+// segura 0,9 s, o bastante para ler "Enviado ao editor" e ouvir o carro da máquina voltar.
+const CHECA_A_CADA_MS = 50;
+const FECHA_APOS_MS = 900;
 const BIG = ['#s-text', '#w-text'];
 const FIELDS = ['#s-text', '#s-title', '#s-pen', '#s-bio', '#w-text', '#w-title', '#w-genre-new', '#w-behind'];
 const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector(s) as T | null;
@@ -149,13 +154,13 @@ export default function Typewriter() {
       if (!openRef.current) return; let n = 0;
       const iv = setInterval(() => {
         const d = getDeps(); n++;
-        if (!openRef.current || n > 220 || !d) { clearInterval(iv); return; }
+        if (!openRef.current || n * CHECA_A_CADA_MS > 88_000 || !d) { clearInterval(iv); return; } // desiste após ~88 s, como antes
         if (done(d)) { clearInterval(iv); then(); }
-      }, 400);
+      }, CHECA_A_CADA_MS);
       offs.push(() => clearInterval(iv));
     };
-    on($('#workForm'), 'submit', () => watch((d) => !d.state.workFormOpen, () => setTimeout(() => { if (openRef.current) fns.current.closeTw(); }, 2200)));
-    on($('#storyForm'), 'submit', () => { const t0 = base.current; watch((d) => d.state.lastPost > t0, () => setTimeout(() => { const d = getDeps(); if (openRef.current && d) { d.state.goEnvios = true; fns.current.closeTw(); } }, 2600)); });
+    on($('#workForm'), 'submit', () => watch((d) => !d.state.workFormOpen, () => setTimeout(() => { if (openRef.current) fns.current.closeTw(); }, FECHA_APOS_MS)));
+    on($('#storyForm'), 'submit', () => { const t0 = base.current; watch((d) => d.state.lastPost > t0, () => setTimeout(() => { const d = getDeps(); if (openRef.current && d) { d.state.goEnvios = true; fns.current.closeTw(); } }, FECHA_APOS_MS)); });
     const note = $('#note');
     if (note) {
       const mo = new MutationObserver(() => { if (openRef.current) setMsg({ t: note.hidden ? '' : note.textContent || '', err: note.classList.contains('err') }); });
